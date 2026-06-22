@@ -1,0 +1,15 @@
+# Carpetas de compilación de .NET
+bin/
+obj/
+
+# Configuraciones locales de VS Code y herramientas
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Archivos temporales del sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
