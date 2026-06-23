@@ -1,2 +1,8 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AbbRobots.Net/AbbRobots.Net.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AbbRobots.Net.ConsoleTest/AbbRobots.Net.ConsoleTest.csproj" />
+  </Folder>
 </Solution>
