@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using AbbRobots.Net.Parser;
 
 namespace AbbRobots.Net.ConsoleTest;
@@ -7,31 +8,33 @@ class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine("=== ABB Robots Parser  Test ===");
+        Console.WriteLine("=== ABB Robots Parser - Lazarus to .NET 10 ===");
 
-        //Loking for the EIO.cfg file in the current directory
-        string baseDirectory = AppContext.BaseDirectory;
-        string filename=Path.Combine(baseDirectory, "EIO.cfg");
-        // Instanciamos nuestro parser moderno
-        var parser = new EioParser();
-        if (!System.IO.File.Exists(filename))
+        string filePath = Path.Combine(AppContext.BaseDirectory, "EIO.cfg");
+
+        if (!File.Exists(filePath))
         {
-            Console.WriteLine($"File '{filename}' not found.");
+            Console.WriteLine($"[ERROR] Fichero no encontrado.");
             return;
         }
-        else
-        {
-            Console.WriteLine($"File '{filename}' found. Processing...");
-        }
-        // Procesamos el texto bruto
-        string EioContent = System.IO.File.ReadAllText(filename);
-        parser.ProcessSignals(EioContent);
 
-        // Mostramos los resultados en la consola
-        Console.WriteLine($"\nSuccessfully parsed {parser.LoadedSignals.Count} signals:");
-        foreach (var signal in parser.LoadedSignals) // <-- Asegúrate de que ponga LoadedSignals
+        string realEioContent = File.ReadAllText(filePath);
+
+        var parser = new EioParser();
+        // Procesamos el archivo mapeando a objetos reales
+        parser.ProcessEioFile(realEioContent);
+
+        // 💡 EXCLUSIVO: Ahora accedemos a propiedades reales de objetos reales
+        Console.WriteLine($"\n[SEÑALES DETECTADAS: {parser.Signals.Count}]");
+        foreach (var sig in parser.Signals)
         {
-            Console.WriteLine($"-> {signal}");
+            Console.WriteLine($"Señal: {sig.Name,-20} Tipo: {sig.SignalType,-5} Tarjeta: {sig.Device} Map: {sig.DeviceMap}");
+        }
+
+        Console.WriteLine($"\n[CONEXIONES CRUZADAS DETECTADAS: {parser.CrossConnections.Count}]");
+        foreach (var cross in parser.CrossConnections)
+        {
+            Console.WriteLine($"Conexión: {cross.Name} -> Resultado: {cross.Result}");
         }
     }
 }

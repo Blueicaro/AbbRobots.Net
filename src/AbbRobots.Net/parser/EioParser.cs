@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-//using AbbRobots.Net.Models; // Importamos nuestros modelos nuevos
+using AbbRobots.Net.Models; // Importamos nuestros modelos nuevos
 
 namespace AbbRobots.Net.Parser;
 
@@ -39,17 +39,46 @@ public class EioParser : CfgParser
         }
 
         // 3. PARSEAR SECCIÓN DE CONEXIONES CRUZADAS (EIO_CROSS_CONNECTION)
-        if (Sections.TryGetValue("EIO_CROSS_CONNECTION", out var crossLines))
+        if (Sections.TryGetValue("EIO_CROSS", out var crossLines))
         {
             foreach (var line in crossLines)
             {
                 string name = ExtractAttribute(line, "Name");
                 string res = ExtractAttribute(line, "Res");
+
+                //Oper 1 
                 string act1 = ExtractAttribute(line, "Act1");
+                string Oper1 = ExtractAttribute(line, "Oper1");
+                string Invert1 = ExtractAttribute(line,"Act1_invert");
+
+                //Oper2
+                string act2 = ExtractAttribute(line, "Act2");
+                string Oper2 = ExtractAttribute(line, "Oper2");
+                string Invert2 = ExtractAttribute(line,"Act2_invert");
+
+                //Oper3
+                string act3 = ExtractAttribute(line, "Act3");
+                string Oper3 = ExtractAttribute(line, "Oper3");
+                string Invert3 = ExtractAttribute(line,"Act3_invert");
+
+                //Oper4
+                string act4 = ExtractAttribute(line, "Act4");
+                string Oper4 = ExtractAttribute(line, "Oper4");
+                string Invert4 = ExtractAttribute(line,"Act4_invert");
+
+                //Oper5
+                string act5 = ExtractAttribute(line, "Act4");
+                string Invert5 = ExtractAttribute(line,"Act5_invert");
+                
 
                 if (!string.IsNullOrEmpty(name))
                 {
-                    CrossConnections.Add(new CrossConnectionItem(name, res, act1));
+                    CrossConnections.Add(new CrossConnectionItem(name, res, 
+                                                                    act1,Oper1,Invert1,
+                                                                    act2,Oper2,Invert2,
+                                                                    act3,Oper3,Invert3,
+                                                                    act4,Oper4,Invert4,
+                                                                    act5,Invert1));
                 }
             }
         }
