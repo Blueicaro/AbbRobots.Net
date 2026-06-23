@@ -24,7 +24,8 @@ class Program
             Console.WriteLine($"File '{filename}' found. Processing...");
         }
         // Procesamos el texto bruto
-        parser.ProcessSignals(filename);
+        string EioContent = System.IO.File.ReadAllText(filename);
+        parser.ProcessSignals(EioContent);
 
         // Mostramos los resultados en la consola
         Console.WriteLine($"\nSuccessfully parsed {parser.LoadedSignals.Count} signals:");
