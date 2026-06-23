@@ -7,30 +7,24 @@ class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine("=== ABB Robots Parser Vanguard Test ===");
+        Console.WriteLine("=== ABB Robots Parser  Test ===");
 
-        // Un texto de prueba simulando un EIO.cfg real con líneas partidas (\) y comentarios (#)
-        string mockEioCfg = """
-        # Initial configuration file for testing
-        EIO_SIGNAL:
-              -Name "di_Siemens_OK" -SignalType "DI" -Device "Profinet"\
-              -Label "PLC Communication OK" -DeviceMap "0"
-
-              -Name "do_Robot_InHome" -SignalType "DO" -Device "Profinet"\
-              -Label "Robot safe in home position" -DeviceMap "1"
-        """;
-
+       string filename="EIO.cfg";
         // Instanciamos nuestro parser moderno
         var parser = new EioParser();
-               // Procesamos el texto bruto
-        parser.ProcessSignals(mockEioCfg);
+        if (!System.IO.File.Exists(filename))
+        {
+            Console.WriteLine($"File '{filename}' not found.");
+            return;
+        }
+        // Procesamos el texto bruto
+        parser.ProcessSignals(filename);
 
-        // // Mostramos los resultados en la consola
-        // Console.WriteLine($"\nSuccessfully parsed {parser.Signals.Count} signals:");
-        // foreach (var signal in parser.Signals)
-        // {
-        //     Console.WriteLine($"-> {signal}");
-        // } 
-
+        // Mostramos los resultados en la consola
+        Console.WriteLine($"\nSuccessfully parsed {parser.LoadedSignals.Count} signals:");
+        foreach (var signal in parser.LoadedSignals) // <-- Asegúrate de que ponga LoadedSignals
+        {
+            Console.WriteLine($"-> {signal}");
+        }
     }
 }

@@ -1,60 +1,24 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
 
-namespace AbbRobots.Net.Parser
+namespace AbbRobots.Net.Parser;
+
+// Al poner ': CfgParser', EioParser hereda toda la lógica de limpiar el texto
+public class EioParser : CfgParser
 {
-    public class EioParser
+    // Usamos el nombre que tú elegiste: LoadedSignals
+    public List<string> LoadedSignals { get; private set; } = [];
+
+    public void ProcessSignals(string rawText)
     {
-        //Lista para guardar las señales
-        public List<string> LoadedSignals { get; private set; } = new List<string>();
-        public void ProcessSignals(string rawText)
-{
-    LoadedSignals.Clear();
+        LoadedSignals.Clear();
 
-    string[] lines = rawText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-    
-    // To store the lines
-    string accumulatedLine = "";
+        // 1. Llamamos al método del padre para que limpie comentarios y junte las barras '\'
+        LoadAndCleanText(rawText);
 
-    foreach (string line in lines)
-    {
-        string cleanLine = line.Trim();
-
-        // Skip empty lines or comments, but WATCH OUT: 
-//      // Only if we are not accumulating a split line."
-        if (string.IsNullOrEmpty(cleanLine) || cleanLine.StartsWith("#"))
-        {
-            continue;
-        }
-
-        // If we got info we add it
-        if (!string.IsNullOrEmpty(accumulatedLine))
-        {
-            accumulatedLine += " " + cleanLine;
-        }
-        else
-        {
-            accumulatedLine = cleanLine;
-        }
-
-        // This line finish with  '\'?)
-        if (accumulatedLine.EndsWith("\\"))
-        {
-            // Clean the slash at the end
-            accumulatedLine = accumulatedLine.Substring(0, accumulatedLine.Length - 1).Trim();
-            
-            // Jump to the next file
-            continue; 
-        }
-  
-        if (accumulatedLine.StartsWith("-Name"))
-        {
-            LoadedSignals.Add(accumulatedLine);
-        }
-
-        // Clean for next line
-        accumulatedLine = "";
-    }
-}
+        // 2. Filtramos la lista resultante que nos da el padre (CleanedLogicalLines)
+        LoadedSignals = CleanedLogicalLines
+            .Where(line => line.StartsWith("-Name"))
+            .ToList();
     }
 }
