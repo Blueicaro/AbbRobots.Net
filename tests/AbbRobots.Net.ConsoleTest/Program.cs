@@ -22,15 +22,15 @@ class Program
 
         // Instanciamos nuestro parser moderno
         var parser = new EioParser();
-        
-        // Procesamos el texto bruto
+               // Procesamos el texto bruto
         parser.ProcessSignals(mockEioCfg);
 
-        // Mostramos los resultados en la consola
-        Console.WriteLine($"\nSuccessfully parsed {parser.Signals.Count} signals:");
-        foreach (var signal in parser.Signals)
-        {
-            Console.WriteLine($"-> {signal}");
-        }
+        // // Mostramos los resultados en la consola
+        // Console.WriteLine($"\nSuccessfully parsed {parser.Signals.Count} signals:");
+        // foreach (var signal in parser.Signals)
+        // {
+        //     Console.WriteLine($"-> {signal}");
+        // } 
+
     }
 }

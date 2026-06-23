@@ -7,7 +7,7 @@ namespace AbbRobots.Net.Parser
     {
         //Lista para guardar las señales
         public List<string> LoadedSignals { get; private set; } = new List<string>();
-        public void ParseText(string rawText)
+        public void ProcessSignals(string rawText)
 {
     LoadedSignals.Clear();
 
