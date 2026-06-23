@@ -9,13 +9,19 @@ class Program
     {
         Console.WriteLine("=== ABB Robots Parser  Test ===");
 
-       string filename="EIO.cfg";
+        //Loking for the EIO.cfg file in the current directory
+        string baseDirectory = AppContext.BaseDirectory;
+        string filename=Path.Combine(baseDirectory, "EIO.cfg");
         // Instanciamos nuestro parser moderno
         var parser = new EioParser();
         if (!System.IO.File.Exists(filename))
         {
             Console.WriteLine($"File '{filename}' not found.");
             return;
+        }
+        else
+        {
+            Console.WriteLine($"File '{filename}' found. Processing...");
         }
         // Procesamos el texto bruto
         parser.ProcessSignals(filename);
