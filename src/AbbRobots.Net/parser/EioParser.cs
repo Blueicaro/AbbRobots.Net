@@ -30,10 +30,28 @@ public class EioParser : CfgParser
                 string device = ExtractAttribute(line, "Device");
                 string deviceMap = ExtractAttribute(line, "DeviceMap");
                 string label = ExtractAttribute(line, "Label");
+                string category = ExtractAttribute(line,"Category");
+                string access = ExtractAttribute(line,"Access");
+                string defaultValue = ExtractAttribute(line,"DefaultValue");
+                string invert =ExtractAttribute(line,"invert");
+                string safeLevel = ExtractAttribute(line,"SafeLevel");
+                string filtAct = ExtractAttribute(line,"FiltAct");
+                string filtPas= ExtractAttribute(line,"FiltPas");
+                string encType = ExtractAttribute(line,"EncType");
+                string maxBitVal = ExtractAttribute(line,"MaxBitVal");
+                string maxLog  = ExtractAttribute(line,"MaxLog");
+                string maxPhys = ExtractAttribute(line,"MaxPhys");
+                string minPhysLimit = ExtractAttribute(line,"MinPhysLimit");
+                string size = ExtractAttribute(line,"Size");
+
 
                 if (!string.IsNullOrEmpty(name))
                 {
-                    Signals.Add(new SignalItem(name, type, device, deviceMap, label));
+                    Signals.Add(new SignalItem(name, type, device, deviceMap, label,
+                                                category,access,defaultValue,
+                                                invert,safeLevel,filtAct,
+                                                filtPas,encType,maxBitVal,
+                                                maxLog,maxPhys,minPhysLimit,size));
                 }
             }
         }
