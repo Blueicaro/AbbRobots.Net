@@ -15,8 +15,8 @@ public class IoService
 
     public async Task<string>GetSignalValueAsync(string signalName)
     {
-        var response = await _client.GetAsync("$rs/iosystem/signals/{signalName}");
-        response.EnsureSuccessStatusCode;
+        var response = await _client.GetAsync("rw");
+        response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }
 }

@@ -1,40 +1,30 @@
 ﻿using System;
 using System.IO;
-using AbbRobots.Net.Parser;
+using AbbRobots.Net.WebServices;
 
 namespace AbbRobots.Net.ConsoleTest;
 
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        Console.WriteLine("=== ABB Robots Parser - Lazarus to .NET 10 ===");
+        string ipRobot = "localhost";
+        var myTobot = new AbbRobotClient(ipRobot,"Default User","robotics",80);
 
-        string filePath = Path.Combine(AppContext.BaseDirectory, "EIO.cfg");
-
-        if (!File.Exists(filePath))
+        try
         {
-            Console.WriteLine($"[ERROR] Fichero no encontrado.");
-            return;
+            Console.WriteLine("$(Conectando al robot en {ipRobot}...");
+            await myTobot.Connect();
+            Console.WriteLine("\n Conexión exitosa\n");
+           
         }
-
-        string realEioContent = File.ReadAllText(filePath);
-
-        var parser = new EioParser();
-        // Procesamos el archivo mapeando a objetos reales
-        parser.ProcessEioFile(realEioContent);
-
-        // 💡 EXCLUSIVO: Ahora accedemos a propiedades reales de objetos reales
-        Console.WriteLine($"\n[SEÑALES DETECTADAS: {parser.Signals.Count}]");
-        foreach (var sig in parser.Signals)
+        catch (Exception ex)
         {
-            Console.WriteLine($"Señal: {sig.Name,-20} Tipo: {sig.SignalType,-5} Tarjeta: {sig.Device} Map: {sig.DeviceMap}");
-        }
+            Console.WriteLine($"\n❌ Error al conectar con RobotStudio: {ex.Message}");
+            Console.WriteLine("Asegúrate de que el controlador virtual está en ejecución y la IP/puerto es correcta.");
 
-        Console.WriteLine($"\n[CONEXIONES CRUZADAS DETECTADAS: {parser.CrossConnections.Count}]");
-        foreach (var cross in parser.CrossConnections)
-        {
-            Console.WriteLine($"Conexión: {cross.Name} -> Resultado: {cross.Result}");
         }
-    }
+        Console.WriteLine("Fin de la conexión");
+    
+         }
 }

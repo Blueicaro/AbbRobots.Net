@@ -15,6 +15,6 @@ public class RobotWareServices
     {
         var response = await _client.GetAsync("rw/system");
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStreamAsync();
+        return await response.Content.ReadAsStringAsync();
     }
 }
