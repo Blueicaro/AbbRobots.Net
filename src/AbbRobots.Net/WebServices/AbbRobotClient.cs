@@ -1,8 +1,9 @@
 using System;
-using System.Data;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 using AbbRobots.Net.WebServices.Services;
 
 namespace AbbRobots.Net.WebServices;
@@ -10,44 +11,55 @@ namespace AbbRobots.Net.WebServices;
 public class AbbRobotClient
 {
     private readonly HttpClient _httpClient;
+    private readonly CookieContainer _cookieContainer;
 
+    public  IoService Io { get; }
 
-
-    public RobotWareServices RobotWare { get; }
-    public IoService Io { get; }
-
-    public AbbRobotClient(string ipAddress, string username = "Default User", string password = "robotics", int? port = null)
+    public AbbRobotClient(string ipAddress, string username, string password, int? port = null)
     {
-
         string uriString = port.HasValue
-           ? $"https://{ipAddress}:{port.Value}/"
-           : $"https://{ipAddress}/";
+            ? $"https://{ipAddress}:{port.Value}/"
+            : $"https://{ipAddress}/";
 
-        var baseUri = new Uri(uriString);
+        _cookieContainer = new CookieContainer();
 
-
-
-        //Ignore certificates selfsigned by ABB
         var handler = new HttpClientHandler
         {
+            CookieContainer = _cookieContainer,
             ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
         };
 
-        _httpClient = new HttpClient(handler) { BaseAddress = baseUri };
+        _httpClient = new HttpClient(handler) { BaseAddress = new Uri(uriString) };
 
+        // Cabecera de Autenticación Básica (como GenerarClave en Pascal)
         var authToken = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}"));
-
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authToken);
 
-        RobotWare = new RobotWareServices(_httpClient);
+        // Cabecera Connection: Keep-Alive
+        _httpClient.DefaultRequestHeaders.Connection.Add("Keep-Alive");
+
+        // Cabeceras estrictas de ABB en Pascal (sin validación para que .NET las envíe sí o sí)
+        _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/hal+json;v=2.0");
+        _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/hal+json;v=2.0");
+
         Io = new IoService(_httpClient);
 
     }
-    public async Task Connect()
-    {
-        var response = await _httpClient.GetAsync("rw");
-        response.EnsureSuccessStatusCode();
 
+    /// <summary>
+    /// Réplica exacta de 'PrimeraConexion' de Pascal. Hace un GET a la raíz con las cabeceras preparadas.
+    /// </summary>
+    public async Task<bool> ConnectAsync()
+    {
+        try
+        {
+            // FHttpSend.Get(FRobotUrl);
+            var response = await _httpClient.GetAsync("");
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
