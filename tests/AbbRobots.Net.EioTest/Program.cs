@@ -1,51 +1,47 @@
 ﻿using System;
-using System.IO;
-using System.Collections.Generic;
-// Asegúrate de cambiar este using por el namespace exacto donde viva tu EioParser
-using AbbRobots.Net.Parser; 
+using System.Threading.Tasks;
+using AbbRobots.Net;
+using AbbRobots.Net.Models;
+using AbbRobots.Net.WebServices;
 
-Console.WriteLine("=== TEST DE PURGADO DE EIO.CFG ===");
+Console.WriteLine("=== CONFIGURACIÓN DE SEÑALES EN VIVO ===");
 
-string rutaEio = "EIO.cfg"; // Asegúrate de copiar un EIO.cfg de prueba en la carpeta del ejecutable
+// Instanciamos el cliente principal de tu librería
+var robot = new AbbRobotClient ("localhost","Default User","robotics",80);
 
-if (!File.Exists(rutaEio))
+var newSignal = new SignalItem("doPrensaOk", "DO", "PN_Internal_Device", "1", "Señal de validación");
+
+// 1. Pedimos el control del dominio de configuración a través del nuevo servicio dedicado
+Console.WriteLine("Solicitando bloqueo del dominio de configuración...");
+if (await robot.Mastership.RequestAsync("cfg"))
 {
-    Console.WriteLine($"[Error] No se encuentra el archivo en: {Path.GetFullPath(rutaEio)}");
-    return;
-}
+    Console.WriteLine(" -> ¡Dominio 'cfg' bloqueado en exclusiva!");
 
-// 1. Cargamos el documento usando tu parser existente
-Console.WriteLine("Cargando y parseando archivo...");
-var Eio = new EioParser[];
- Eio.ProcessEioFile(rutaEio);
+    // 2. Operamos sobre las I/O usando el servicio especializado de I/O
+    Console.WriteLine($"Creando señal estructural '{newSignal.Name}'...");
+    bool exito = await robot.Io.CreateSignalInConfigurationAsync(newSignal);
 
-// 2. Obtenemos la lista de señales mapeadas por el parser
-var señalesEio = eioDocument.GetSignals();
-Console.WriteLine($"Señales iniciales encontradas: {señalesEio.Count}\n");
-
-// 3. Bucle inverso de toda la vida para borrar elementos de una lista de forma segura
-for (int i = señalesEio.Count - 1; i >= 0; i--)
-{
-    var señal = señalesEio[i];
-    
-    // ¡Aquí obtenemos el nombre gracias a tu parser!
-    string nombreSeñal = señal.Name;
-
-    // --- FILTRO POR NUEVA CARACTERÍSTICA ---
-    // Aquí es donde decides si la señal se queda o se va
-    if (DebeBorrarsePorNuevaCaracteristica(señal))
+    if (exito)
     {
-        Console.WriteLine($"[BORRANDO] -> {nombreSeñal} (Tipo: {señal.SignalType})");
-        
-        // Eliminamos la señal de la lista interna del documento
-        señalesEio.RemoveAt(i);
+        Console.WriteLine(" -> ¡Señal inyectada con éxito en la base de datos interna!");
+    }
+    else
+    {
+        Console.WriteLine(" -> [Error] El robot rechazó la configuración de la señal.");
+    }
+
+    // 3. Liberamos el control usando de nuevo el servicio de Mastership
+    Console.WriteLine("Liberando dominio 'cfg'...");
+    await robot.Mastership.ReleaseAsync("cfg");
+
+    // 4. Si la inyección fue bien, reiniciamos el robot (puedes mover el método Restart a un SystemService en el futuro)
+    if (exito)
+    {
+        Console.WriteLine("Reiniciando el robot para aplicar cambios...");
+        await robot.Io.RestartRobotAsync(); 
     }
 }
-
-// 4. Guardamos el resultado limpio
-string rutaSalida = "EIO_Limpio.cfg";
-eioDocument.Save(rutaSalida);
-
-Console.WriteLine($"\nProceso terminado. Archivo purgado guardado en: {Path.GetFullPath(rutaSalida)}");
-
-
+else
+{
+    Console.WriteLine(" -> [Error] No se pudo obtener el Mastership. El recurso está ocupado por otra sesión.");
+}

@@ -5,15 +5,15 @@ namespace AbbRobots.Net.WebServices.Services;
 
 public class RobotWareServices
 {
-    private readonly HttpClient _client;
+    private readonly HttpClient _httpClient;
     public RobotWareServices(HttpClient client)
     {
-        _client = client;
+        _httpClient = client;
     }
 
     public async Task<string> GetSystemInfoAsync()
     {
-        var response = await _client.GetAsync("rw/system");
+        var response = await _httpClient.GetAsync("rw/system");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }

@@ -86,9 +86,9 @@ public class EioParser : CfgParser
             foreach (var cross in CrossConnections)
             {
                 List<string> atributos = new List<string> { $"  -Name \"{cross.Name}\"" };
-                if (!string.IsNullOrEmpty(cross.Result)) atributos.Add($"-Res \"{cross.Res}\"");
-                if (!string.IsNullOrEmpty(cross.Actor1)) atributos.Add($"-Act1 \"{cross.Act1}\"");
-                if (!string.IsNullOrEmpty(cross.InvertActor1)) atributos.Add($"-Oper1 \"{cross.Oper1}\"");
+                if (!string.IsNullOrEmpty(cross.Result)) atributos.Add($"-Res \"{cross.Result}\"");
+                if (!string.IsNullOrEmpty(cross.Actor1)) atributos.Add($"-Act1 \"{cross.Actor1}\"");
+                if (!string.IsNullOrEmpty(cross.InvertActor1)) atributos.Add($"-Oper1 \"{cross.Operator1}\"");
                 // Continuar....
 
                 sb.AppendLine(ConstruirLineaConWrap(atributos));
@@ -133,7 +133,7 @@ public class EioParser : CfgParser
 
         return resultadoFinal.ToString();
     }
-}
+
 
 
     private void EioCross(List<string> crossLines)

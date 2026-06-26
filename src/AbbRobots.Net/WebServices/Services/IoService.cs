@@ -8,11 +8,11 @@ namespace AbbRobots.Net.WebServices.Services;
 
 public class IoService
 {
-    private readonly HttpClient _client;
+    private readonly HttpClient _httpClient;
 
     public IoService(HttpClient client)
     {
-        _client = client;
+        _httpClient = client;
     }
 
     /// <summary>
@@ -21,7 +21,7 @@ public class IoService
     public async Task<List<RwsSignal>> GetSignalsAsync()
     {
         // 1. Petición HTTP nativa usando la cookie ya guardada
-        var response = await _client.GetAsync("rw/iosystem/signals");
+        var response = await _httpClient.GetAsync("rw/iosystem/signals");
         response.EnsureSuccessStatusCode();
 
         // 2. Leer el string JSON
@@ -58,7 +58,7 @@ public class IoService
 
         var postContent = new FormUrlEncodedContent(formFields);
 
-        var response = await _client.PostAsync(urlEndpoint, postContent);
+        var response = await _httpClient.PostAsync(urlEndpoint, postContent);
 
         return response.IsSuccessStatusCode;
 

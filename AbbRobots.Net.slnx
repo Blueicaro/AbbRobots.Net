@@ -5,5 +5,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/AbbRobots.Net.ConsoleTest/AbbRobots.Net.ConsoleTest.csproj" />
     <Project Path="tests/AbbRobots.Net.EioTest/AbbRobots.Net.EioTest.csproj" />
+    <Project Path="tests/AbbRobots.Net.MasterShipTest/AbbRobots.Net.MasterShipTest.csproj" />
   </Folder>
 </Solution>

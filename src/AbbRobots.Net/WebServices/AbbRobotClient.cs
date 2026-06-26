@@ -15,6 +15,10 @@ public class AbbRobotClient
 
     public  IoService Io { get; }
 
+    public MastershipService Mastership{get; }
+
+    public SystemService System{get;}
+
     public AbbRobotClient(string ipAddress, string username, string password, int? port = null)
     {
         string uriString = port.HasValue
@@ -31,29 +35,27 @@ public class AbbRobotClient
 
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri(uriString) };
 
-        // Cabecera de Autenticación Básica (como GenerarClave en Pascal)
+        // Basic Authentication Header 
         var authToken = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}"));
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authToken);
 
-        // Cabecera Connection: Keep-Alive
+        // Connection Header: Keep-Alive
         _httpClient.DefaultRequestHeaders.Connection.Add("Keep-Alive");
 
-        // Cabeceras estrictas de ABB en Pascal (sin validación para que .NET las envíe sí o sí)
+        // Strict ABB headers (without validation, ensuring .NET sends them regardless)
         _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/hal+json;v=2.0");
         _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/hal+json;v=2.0");
 
         Io = new IoService(_httpClient);
+        Mastership = new MastershipService(_httpClient);
+        System = new SystemService(_httpClient);
 
     }
 
-    /// <summary>
-    /// Réplica exacta de 'PrimeraConexion' de Pascal. Hace un GET a la raíz con las cabeceras preparadas.
-    /// </summary>
     public async Task<bool> ConnectAsync()
     {
         try
         {
-            // FHttpSend.Get(FRobotUrl);
             var response = await _httpClient.GetAsync("");
             return response.IsSuccessStatusCode;
         }
