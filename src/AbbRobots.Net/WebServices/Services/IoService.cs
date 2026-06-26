@@ -20,8 +20,9 @@ public class IoService
     /// </summary>    
     public async Task<List<RwsSignal>> GetSignalsAsync()
     {
-        // 1. Petición HTTP nativa usando la cookie ya guardada
-        var response = await _httpClient.GetAsync("rw/iosystem/signals");
+        
+        //var response = await _httpClient.GetAsync("rw/iosystem/signals");
+        var response = await _httpClient.GetRwsAsync("rw/iosystem/signals");
         response.EnsureSuccessStatusCode();
 
         // 2. Leer el string JSON

@@ -12,24 +12,22 @@ namespace AbbRobots.Net.WebServices.Services;
 
 public class SystemService
 {
-    private readonly HttpClient _client;
+    private readonly HttpClient _httpClient;
 
     public SystemService(HttpClient httpClient)
     {
-        _client = httpClient;
+        _httpClient = httpClient;
     }
 
     ///<summary>
     /// Makes a reboot
     /// </summary>
 
-public async Task<bool>RestartRobotAsync()
+    public async Task<bool> RestartRobotAsync()
     {
-        string url ="rw/panel/restart?action=restart";
 
-        var postFields = new Dictionary<string,string>{{"restart-mode","restart"}};
-        var response = await _client.PostAsync(url,new FormUrlEncodedContent(postFields));
-
+        var postFields = new Dictionary<string, string> { { "restart-mode", "restart" } };
+        var response = await _httpClient.PostRwsFormAsync("rw/panel/restart?action=restart", postFields);
         return response.IsSuccessStatusCode;
 
     }
