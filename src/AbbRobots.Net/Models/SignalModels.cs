@@ -4,13 +4,29 @@ namespace AbbRobots.Net.Models;
 
 /// <Summary>
 /// It represents the root of the JSON returned by the robot.
-/// 
+/// </summary>
 public class RwsSignalResponse
 {
     [JsonPropertyName("_embedded")]
     public EmbeddedSignals Embedded{get; set;} = new();
+    [JsonPropertyName("_Links")]
+    public RwsLinks Links{get; set;}=new();
 }
 
+/// <summary>
+/// Helper Class for reading RWS links
+/// </summary>
+public class RwsLinks
+{
+    [JsonPropertyName("next")]
+    public RwsLinkItem? Next {get; set;}
+}
+
+public class RwsLinkItem
+{
+    [JsonPropertyName("href")]
+    public string HRef {get; set;}= string.Empty;
+}
 public class EmbeddedSignals
 {
     [JsonPropertyName("resources")]

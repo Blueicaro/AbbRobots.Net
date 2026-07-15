@@ -20,18 +20,31 @@ public class IoService
     /// </summary>    
     public async Task<List<RwsSignal>> GetSignalsAsync()
     {
-        
-        //var response = await _httpClient.GetAsync("rw/iosystem/signals");
-        var response = await _httpClient.GetRwsAsync("rw/iosystem/signals");
-        response.EnsureSuccessStatusCode();
 
-        // 2. Leer el string JSON
-        string jsonCrudo = await response.Content.ReadAsStringAsync();
+        var SignalList = new List<RwsSignal>();
+        string urlNextPage = "rw/iosystem/signals";
 
-        // 3. Deserializar automáticamente con la potencia de .NET
-        var resultado = JsonSerializer.Deserialize<RwsSignalResponse>(jsonCrudo);
+        while (!string.IsNullOrEmpty(urlNextPage))
+        {
+            using var respuesta = await _httpClient.GetRwsAsync(urlNextPage);
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                break;
+            }
+            string jsonRaw = await respuesta.Content.ReadAsStringAsync();
+            var response = JsonSerializer.Deserialize<RwsSignalResponse>(jsonRaw);
+            if (response?.Embedded?.Resources != null)
+            {
+                SignalList.AddRange(response.Embedded.Resources);
+            }
 
-        return resultado?.Embedded?.Resources ?? new List<RwsSignal>();
+            string? nextHref = response?.Links?.Next?.HRef;
+            if (!string.IsNullOrEmpty(nextHref))
+            {
+                urlNextPage = nextHref.StartsWith("/rw.iosystem") ? nextHref : $"rw/iosystem/{nextHref}";
+            }
+        }
+        return SignalList;
     }
 
     /// <summary>
@@ -63,5 +76,35 @@ public class IoService
 
         return response.IsSuccessStatusCode;
 
+    }
+
+    /// <summary>
+    /// Changes the logical value of a signal on the ABB robot (for example, activates or deactivates a DO).
+    /// </summary>
+    /// <param name="signalName">Exact name of the signal on the I/O map</param>
+    /// <param name="value">The new value in text format (usually "1" or "0").</param>
+    /// <returns>True if the robot successfully accepted the change, False otherwise.</returns>
+    public async Task<bool> WriteSignalAsync(string signalName, string value)
+    {
+        // RWS requires the "set" action to be passed as a parameter in the URL query string.
+        string url = $"rw/iosystem/signals/{signalName}?action=set";
+        var fields = new Dictionary<string, string>
+     {
+         {"lvalue",value}
+     };
+        // Helper, which already configures the urlencoded headers and the POST method.
+        using var response = await _httpClient.PostRwsFormAsync(url, fields);
+        return response.IsSuccessStatusCode;
+    }
+
+    /// <summary>
+    ///  Changes the logical value of a signal on the ABB robot (for example, activates or deactivates a DO).
+    /// </summary>
+    /// <param name="signalName">Exact name of the signal on the I/O map</param>
+    /// <param name="active">The new value in format true or false</param>
+    /// <returns>True if the robot successfully accepted the change, False otherwise.</returns>
+    public async Task<bool> WriteSignalAsync(string signalName, bool active)
+    {
+        return await WriteSignalAsync(signalName, active ? "1" : "0");
     }
 }

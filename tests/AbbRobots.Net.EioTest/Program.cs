@@ -4,7 +4,8 @@ using AbbRobots.Net;
 using AbbRobots.Net.Models;
 using AbbRobots.Net.WebServices;
 
-Console.WriteLine("=== CONFIGURACIÓN DE SEÑALES EN VIVO ===");
+
+Console.WriteLine ("=== CONFIGURACIÓN DE SEÑALES EN VIVO ===");
 
 // Instanciamos el cliente principal de tu librería
 var robot = new AbbRobotClient ("localhost","Default User","robotics",80);
@@ -38,7 +39,7 @@ if (await robot.Mastership.RequestAsync("cfg"))
     if (exito)
     {
         Console.WriteLine("Reiniciando el robot para aplicar cambios...");
-        await robot.Io.RestartRobotAsync(); 
+        await robot.System.RestartRobotAsync();
     }
 }
 else
