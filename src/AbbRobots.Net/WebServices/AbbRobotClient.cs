@@ -1,4 +1,5 @@
 using System;
+using System.Dynamic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -13,17 +14,23 @@ public class AbbRobotClient
     private readonly HttpClient _httpClient;
     private readonly CookieContainer _cookieContainer;
 
+    private readonly string _robotIp;
+
     public  IoService Io { get; }
 
     public MastershipService Mastership{get; }
 
     public SystemService System{get;}
 
+    public SubscriptionService Events{get;}
+
     public AbbRobotClient(string ipAddress, string username, string password, int? port = null)
     {
         string uriString = port.HasValue
             ? $"https://{ipAddress}:{port.Value}/"
             : $"https://{ipAddress}/";
+
+            _robotIp = ipAddress;
 
         _cookieContainer = new CookieContainer();
 
@@ -49,6 +56,8 @@ public class AbbRobotClient
         Io = new IoService(_httpClient);
         Mastership = new MastershipService(_httpClient);
         System = new SystemService(_httpClient);
+
+        Events = new SubscriptionService(_httpClient,_robotIp,_cookieContainer);
 
     }
 
