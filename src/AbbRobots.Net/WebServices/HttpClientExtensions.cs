@@ -12,14 +12,22 @@ public static class HttpClientExtensions
     /// </summary>
     public static async Task<HttpResponseMessage> PostRwsFormAsync(this HttpClient httpClient, string url, Dictionary<string, string> postFields)
     {
-        var content = new FormUrlEncodedContent(postFields);
+       var content = new FormUrlEncodedContent(postFields);
+        
+     
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded")
+        {
+            Parameters = { new NameValueHeaderValue("v", "2.0") }
+        };
+
         var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = content
         };
+      
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml"));
 
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded"));
-
+        
         return await httpClient.SendAsync(request);
     }
 

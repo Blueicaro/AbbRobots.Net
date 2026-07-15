@@ -5,20 +5,21 @@ using System.Text;
 using System.Threading.Tasks;
 using AbbRobots.Net.WebServices;
 
-var robot = new AbbRobotClient ("localhost","Default User","robotics",80);
+var robot = new AbbRobotClient("localhost", "Default User", "robotics", 80);
 
- bool master = await robot.Mastership.RequestAsync("cfg");
- if (master)
+bool master = await robot.Mastership.RequestAsync();
+if (master)
 {
     Console.WriteLine("Master requested");
-     if (await robot.Mastership.ReleaseAsync("cfg"))
+    if (await robot.Mastership.ReleaseAsync(""))
     {
         Console.WriteLine("Master Release");
     }
     else
     {
-        
-    }Console.WriteLine("Fail Master Release");
+        Console.WriteLine("Fail Master Release");
+    }
+
 }
 else
 {

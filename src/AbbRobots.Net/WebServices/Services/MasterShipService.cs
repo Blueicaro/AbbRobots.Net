@@ -21,32 +21,37 @@ public class MastershipService
     /// Requests exclusive control of a specific domain (e.g., "cfg", "motion", "rapid").
     /// </summary>
 
-    public async Task<bool> RequestAsync(string domain)
+    public async Task<bool> RequestAsync(string domain= "")
     {
-       string url = $"rw/mastership/{domain}/request";
-
-        // 1. Creamos el contenido del formulario vacío
-        var contenido = new FormUrlEncodedContent(new Dictionary<string, string>());
-
-        // 2. Limpiamos y configuramos las cabeceras específicas de esta petición POST
-        var peticion = new HttpRequestMessage(HttpMethod.Post, url);
-        peticion.Content = contenido;
-        
-        // Exigimos al robot que acepte el formato urlencoded de respuesta
-        peticion.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded"));
-
-        // 3. Enviamos el mensaje completo con sus cabeceras
-        var respuesta = await _httpClient.SendAsync(peticion);
-        return respuesta.IsSuccessStatusCode;
+       HttpResponseMessage  response;
+       if (domain == "")
+        {
+         response = await _httpClient.PostRwsFormAsync("rw/mastership/request",[]);    
+        }
+        else
+       {
+         response = await _httpClient.PostRwsFormAsync($"rw/mastership/{domain}/request",[]);
+        }
+       
+       return response.IsSuccessStatusCode;
     }
 
     /// <summary>
     /// Releases exclusive control of a previously acquired domain.
     /// </summary>   
-    public async Task<bool> ReleaseAsync(string domain)
+    public async Task<bool> ReleaseAsync(string domain="")
     {
-        string url = $"rw/mastership/{domain}/release";
-        var response = await _httpClient.PostAsync(url, new FormUrlEncodedContent(new Dictionary<string,string>()));
+       
+        
+        HttpResponseMessage response;
+        if (domain == "")
+        {
+            response = await _httpClient.PostRwsFormAsync($"rw/mastership/release",[]);    
+        }else
+        {
+            response = await _httpClient.PostRwsFormAsync($"rw/mastership/{domain}/release",[]);
+        }
+        
         return response.IsSuccessStatusCode;
     }
 

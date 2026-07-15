@@ -13,7 +13,7 @@ public class RobotWareServices
 
     public async Task<string> GetSystemInfoAsync()
     {
-        var response = await _httpClient.GetAsync("rw/system");
+        var response = await _httpClient.GetRwsAsync("rw/system");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }
