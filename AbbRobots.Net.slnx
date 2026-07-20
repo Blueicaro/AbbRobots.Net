@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/examples/" />
+  <Folder Name="/examples/ControllerStateDemo/">
+    <Project Path="examples/ControllerStateDemo/AbbRobots.net.ControllerStateDemo.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/AbbRobots.Net/AbbRobots.Net.csproj" />
   </Folder>
@@ -7,5 +11,4 @@
     <Project Path="tests/AbbRobots.Net.EioTest/AbbRobots.Net.EioTest.csproj" />
     <Project Path="tests/AbbRobots.Net.MasterShipTest/AbbRobots.Net.MasterShipTest.csproj" />
   </Folder>
-  <Project Path="../../temp/Recurso/ConsoleApp1/ConsoleApp1.csproj" />
 </Solution>

@@ -118,7 +118,7 @@ public class SubscriptionService : IDisposable
         string path = href.Split(';')[0];
         return path.Split('/').Last();
     }
-}
+
 
     /// <summary>
     /// 
@@ -131,38 +131,40 @@ public class SubscriptionService : IDisposable
         await SubscribeToResourceInternalAsync(resource, priority);
     }
 
-    public async Task SubscribeToControlStateAsync(SubscriptionPriority priority = SubscriptionPriority.Medium)
+    public async Task SubscribeToControllerStateAsync(SubscriptionPriority priority = SubscriptionPriority.Medium)
     {
         string resource = "/rw/panel/ctrlstate:state";
         await SubscribeToResourceInternalAsync(resource, priority);
     }
 
-    private async Task SubscribeToResourceInternalAsync(string resourceUri, SubscriptionPriority priority)
+ private async Task SubscribeToResourceInternalAsync(string resourceUri, SubscriptionPriority priority)
+{
+    await _semaphore.WaitAsync();
+    try
     {
-        //To avoid multiple call at same time
-        await _semaphore.WaitAsync();
-        try
+        int limitCapacity = priority == SubscriptionPriority.High ? 64 : 1000;
+        var groupAvaliable = _activeGroups.FirstOrDefault(g => g.Priority == priority && (g.Resources.Count < limitCapacity));
+        
+        if (groupAvaliable != null)
         {
-            int limitCapacity = priority == SubscriptionPriority.High ? 64 : 1000;
-            var groupAvaliable = _activeGroups.FirstOrDefault(g => g.Priority == priority && (g.Resources.Count < limitCapacity));
-            if (groupAvaliable != null)
-            {
-                // Add resource to group
-                await AddResourceToGroupAsync(groupAvaliable, resourceUri);
-            }
-            else
-            {
-                if (_activeGroups.Count >= 10)
-                {
-                    throw new InvalidOperationException("The limit of 10 subscription groups has been reached.");
-                }
-            }
+            await AddResourceToGroupAsync(groupAvaliable, resourceUri);
         }
-        finally
+        else
         {
-            _semaphore.Release();
+            if (_activeGroups.Count >= 10)
+            {
+                throw new InvalidOperationException("The limit of 10 subscription groups has been reached.");
+            }
+
+            // CRUCIAL: Si no hay grupo disponible, ¡lo creamos!
+            await CreateNewSubscriptionGroupAsync(resourceUri, priority, limitCapacity);
         }
     }
+    finally
+    {
+        _semaphore.Release();
+    }
+}
 
     private async Task AddResourceToGroupAsync(SubscriptionGroup group, string resourceUri)
     {
@@ -235,33 +237,36 @@ public class SubscriptionService : IDisposable
         group.ListenerTask = Task.Run(() => ListenLoopAsync(group, group.CancellationTokenSource.Token), group.CancellationTokenSource.Token);
     }
     private async Task ListenLoopAsync(SubscriptionGroup group, CancellationToken token)
+{
+    var buffer = new byte[1024 * 8];
+    try
     {
-        var buffer = new byte[1024 * 8];
-        try
+        while (group.WebSocket != null && group.WebSocket.State == WebSocketState.Open && !token.IsCancellationRequested)
         {
-            while (group.WebSocket != null && group.WebSocket.State == WebSocketState.Open && !token.IsCancellationRequested)
+            var result = await group.WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
+            if (result.MessageType == WebSocketMessageType.Close)
             {
-                var result = await group.WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    break;
-                }
-                string messageRaw = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                OnNotificationReceived?.Invoke(group.GroupID, messageRaw);
+                break;
             }
-        }
-        catch (OperationCanceledException)
-        {
+            
+            string messageRaw = Encoding.UTF8.GetString(buffer, 0, result.Count);
+            
+            // 1. Notificación genérica (por si se usa fuera)
+            OnNotificationReceived?.Invoke(group.GroupID, messageRaw);
 
-            //Do nothing
-        }
-        catch (Exception ex)
-        {
-            Console.Write($"[Grupo {group.GroupID}] Error de conexión WebSocket: {ex.Message}");
+            // 2. CRUCIAL: Pasamos el XHTML al enrutador para que dispare los eventos tipados
+            ParseAndEmitEvent(messageRaw);
         }
     }
-
-    public void Dispose()
+    catch (OperationCanceledException)
+    {
+        // Do nothing
+    }
+    catch (Exception ex)
+    {
+        Console.Write($"[Grupo {group.GroupID}] Error de conexión WebSocket: {ex.Message}");
+    }
+}    public void Dispose()
     {
         _semaphore.Dispose();
         foreach (var group in _activeGroups)
