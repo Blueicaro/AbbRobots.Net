@@ -1,33 +1,42 @@
 ﻿using System;
 using System.Threading.Tasks;
-using AbbRobots.Net;
-using AbbRobots.Net.Models;
 using AbbRobots.Net.WebServices;
+using AbbRobots.Net.WebServices.Services; // Asegura el namespace de SubscriptionPriority si hace falta
 
 Console.WriteLine("==================================================");
 Console.WriteLine("       ABB OmniCore - Controller Status Demo      ");
 Console.WriteLine("==================================================");
 
-//robot Ip
-string robotIp="127.0.0.1";
+// Puedes probar aquí con la IP real o una falsa para verificar el timeout/error
+string robotIp = "localhost"; 
+Console.WriteLine($"\n[INFO] Connecting the controller to {robotIp}...");
 
-var robot = new AbbRobotClient(robotIp,"Default User", "robotics",80);
-
-Console.WriteLine ($"\n[INFO] Connecting the controller to {robotIp}");
+var robot = new AbbRobotClient(robotIp, "Default User", "robotics",80);
 
 try
-{   // Subscribe to the event BEFORE starting active listening
-    robot.Events.OnControllerStateChanged+=(sender,e)=>
+{
+    // 1. Nos suscribimos al evento antes de abrir el canal
+    robot.Events.OnControllerStateChanged += (sender, e) =>
     {
-        Console.WriteLine($"\n[EVENT] ¡Change detected in the Controller!");
-        Console.WriteLine($"         -> Physical State (Motors): {e.CtrlState.ToUpper()}");
-        Console.WriteLine($"         -> Mode of Operation:       {e.Mode.ToUpper()}");
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"[EVENTO DE ROBOT] Estado: {e.CtrlState} | Modo: {e.Mode}");
+        Console.ResetColor();
     };
+
+    // 2. Ahora sí, esperamos de verdad la suscripción y conexión del WebSocket
+    await robot.Events.SubscribeToControllerStateAsync();
+
     Console.WriteLine("\n[READY] Listening to events in real time.");
     Console.WriteLine("Press any key on this console to exit the demo.");
     Console.ReadKey();
 }
-catch(Exception ex)
+catch (Exception ex)
 {
-    Console.WriteLine ($"[ERROR] There was a failure in the demo: {ex.Message}");
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine($"\n[ERROR DE CONEXIÓN] Ocurrió un fallo al suscribirse: {ex.Message}");
+    if (ex.InnerException != null)
+    {
+        Console.WriteLine($"Detalle: {ex.InnerException.Message}");
+    }
+    Console.ResetColor();
 }

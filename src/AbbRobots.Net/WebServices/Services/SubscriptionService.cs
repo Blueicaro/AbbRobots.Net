@@ -12,6 +12,7 @@ using AbbRobots.Net.Models;
 using System.Xml.Linq;
 using System.Diagnostics;
 using System.Xml;
+using System.Net.Security;
 
 namespace AbbRobots.Net.WebServices.Services;
 
@@ -50,31 +51,36 @@ public class SubscriptionService : IDisposable
     {
         try
         {
-            // Loading the file
+            if (string.IsNullOrWhiteSpace(xmlMessage)) return;
+
             var doc = XDocument.Parse(xmlMessage);
-            // Searching for any attribut "class" 
-            var targetElement = doc.Descendants().FirstOrDefault(e => e.Attribute("class")?.Value == "ios-signalstate-ev" ||
-            e.Attribute("class")?.Value == "pnl-ctrlstate-ev");
+
+            // NameSpace of XML
+            XNamespace ns = "http://www.w3.org/1999/xhtml";
+
+            // searching (ns + "li")
+            var targetElement = doc.Descendants(ns + "li")
+                .FirstOrDefault(e => e.Attribute("class")?.Value == "ios-signalstate-ev" ||
+                                     e.Attribute("class")?.Value == "pnl-ctrlstate-ev");
 
             if (targetElement == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[Parser] No supported event was found in the plot.");
+                System.Diagnostics.Debug.WriteLine("[Parser] No supported event was found in the plot.");
                 return;
             }
 
             string eventClass = targetElement.Attribute("class")?.Value ?? string.Empty;
 
-
             switch (eventClass)
             {
                 case "ios-signalstate-ev":
-                    ProcessSignalEvent(targetElement);
+                    ProcessSignalEvent(targetElement, ns); 
                     break;
                 case "pnl-ctrlstate-ev":
-                    ProcessControllerStateEvent(targetElement);
+                    ProcessControllerStateEvent(targetElement, ns);
                     break;
                 default:
-                    System.Diagnostics.Debug.WriteLine($"[Parser] Event not supported");
+                    System.Diagnostics.Debug.WriteLine("[Parser] Event not supported");
                     break;
             }
         }
@@ -84,45 +90,68 @@ public class SubscriptionService : IDisposable
         }
     }
 
-
-    private void ProcessSignalEvent(XElement element)
+    private void ProcessControllerStateEvent(XElement liElement, XNamespace ns)
     {
-        string estadoCtrl = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "span" && e.Attribute("class")?.Value == "ctrlstate")?.Value ?? string.Empty;
-        string modo = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "span" && e.Attribute("class")?.Value == "ctrlmode")?.Value ?? string.Empty;
+        // Buscamos el hijo <span> que tiene la clase 'ctrlstate'
+        var stateSpan = liElement.Descendants(ns + "span")
+                                 .FirstOrDefault(s => s.Attribute("class")?.Value == "ctrlstate");
 
-        OnControllerStateChanged?.Invoke(this, new ControllerStateChangeEventArgs
+        if (stateSpan != null)
         {
-            CtrlState = estadoCtrl,
-            Mode = modo
-        });
-    }
-    private void ProcessControllerStateEvent(XElement element)
-    {
-      var anchor = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "a");
-    string href = anchor?.Attribute("href")?.Value ?? string.Empty;
-    string signalName = ExtractLastSegment(href);
+            string ctrlStateValue = stateSpan.Value; // "motoron" o "motoroff"
 
-    if (string.IsNullOrEmpty(signalName)) return;
-
-    string valor = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "span" && e.Attribute("class")?.Value == "lvalue")?.Value ?? "0";
-    string estado = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "span" && e.Attribute("class")?.Value == "lstate")?.Value ?? string.Empty;
-
-    bool esSimulada = estado.Equals("simulated", StringComparison.OrdinalIgnoreCase);
-
-    OnSignalChanged?.Invoke(this, new SignalChangedEventArgs
-    {
-        SignalName = signalName,
-        Value = valor,
-        IsSimulated = esSimulada
-    });
+            // Disparamos el evento de tu SDK hacia la demo
+            OnControllerStateChanged?.Invoke(this, new ControllerStateChangeEventArgs
+            {
+                CtrlState = ctrlStateValue,
+                Mode = "Auto" // O el modo si lo extraes de otro nodo similar
+            });
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("[Parser] Found pnl-ctrlstate-ev but missing inner ctrlstate span.");
+        }
     }
 
-    private string ExtractLastSegment(string href)
+    private void ProcessSignalEvent(XElement liElement, XNamespace ns)
     {
-        if (string.IsNullOrEmpty(href)) return string.Empty;
-        // Limpiamos los parámetros de la URL tipo ';state' si vienen
-        string path = href.Split(';')[0];
-        return path.Split('/').Last();
+        var anchorElement = liElement.Descendants(ns + "a").FirstOrDefault();
+        var valueSpan = liElement.Descendants(ns + "span")
+                                 .FirstOrDefault(s => s.Attribute("class")?.Value == "lvalue");
+        var stateSpan = liElement.Descendants(ns + "span")
+                                 .FirstOrDefault(s => s.Attribute("class")?.Value == "lstate");
+
+        if (anchorElement != null && valueSpan != null)
+        {
+            string href = anchorElement.Attribute("href")?.Value ?? string.Empty;
+
+            // Getting the name
+            string lastSegment = href.Split('/').LastOrDefault() ?? "UnknownSignal";
+
+            // Cuttin ; to take the signal
+            string signalName = lastSegment.Split(';').FirstOrDefault() ?? lastSegment;
+
+            string signalValue = valueSpan.Value;
+
+            // if blocked then is simulated
+            bool isSimulated = false;
+            if (stateSpan != null)
+            {
+                isSimulated = stateSpan.Value.Equals("blocked", StringComparison.OrdinalIgnoreCase);
+            }
+
+            // Event!
+            OnSignalChanged?.Invoke(this, new SignalChangedEventArgs
+            {
+                SignalName = signalName,
+                Value = signalValue,
+                IsSimulated = isSimulated
+            });
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("[Parser] Found ios-signalstate-ev but missing anchor or lvalue span.");
+        }
     }
 
 
@@ -139,12 +168,13 @@ public class SubscriptionService : IDisposable
 
     public async Task SubscribeToControllerStateAsync(SubscriptionPriority priority = SubscriptionPriority.Medium)
     {
-        string resource = "/rw/panel/ctrlstate:state";
+        string resource = "/rw/panel/ctrl-state";
         await SubscribeToResourceInternalAsync(resource, priority);
     }
 
     private async Task SubscribeToResourceInternalAsync(string resourceUri, SubscriptionPriority priority)
     {
+        Console.WriteLine($"[DEBUG] Entrando a suscribir: {resourceUri}. Grupos activos actuales: {_activeGroups.Count}");
         await _semaphore.WaitAsync();
         try
         {
@@ -162,7 +192,7 @@ public class SubscriptionService : IDisposable
                     throw new InvalidOperationException("The limit of 10 subscription groups has been reached.");
                 }
 
-                // CRUCIAL: Si no hay grupo disponible, ¡lo creamos!
+                Console.WriteLine($"[Creando subscription] resourceUri:{resourceUri}");
                 await CreateNewSubscriptionGroupAsync(resourceUri, priority, limitCapacity);
             }
         }
@@ -174,7 +204,7 @@ public class SubscriptionService : IDisposable
 
     private async Task AddResourceToGroupAsync(SubscriptionGroup group, string resourceUri)
     {
-        string url = $"Rw/subscription/{group.GroupID}";
+        string url = $"subscription/{group.GroupID}";
 
         int newIndice = group.Resources.Count + 1;
         var fields = new Dictionary<string, string>
@@ -194,7 +224,7 @@ public class SubscriptionService : IDisposable
 
     private async Task CreateNewSubscriptionGroupAsync(string resourceUri, SubscriptionPriority priority, int maxCapacity)
     {
-        string url = "rw/subscription";
+        string url = "subscription";
         var fields = new Dictionary<string, string>
       {
           {"resources","1"},
@@ -202,6 +232,8 @@ public class SubscriptionService : IDisposable
           {"priority","1"},
           {"1-p",((int)priority).ToString()}
       };
+
+        Console.WriteLine($"[CreateNewSubscriptionGroupAsync] url:{url}");
 
         using var response = await _httpClient.PostRwsFormAsync(url, fields);
         response.EnsureSuccessStatusCode();
@@ -225,20 +257,26 @@ public class SubscriptionService : IDisposable
 
         newGroup.Resources.Add(resourceUri);
         _activeGroups.Add(newGroup);
-
         await ConnectWebSocketAsync(newGroup);
 
     }
 
     private async Task ConnectWebSocketAsync(SubscriptionGroup group)
     {
-        group.WebSocket = new ClientWebSocket();
+        group.WebSocket ??= new ClientWebSocket();
         group.CancellationTokenSource = new CancellationTokenSource();
+
+        group.WebSocket.Options.RemoteCertificateValidationCallback = (sender, certificate, chain, SslPolicyErrors) =>
+        {
+            return true;
+        };
+
 
         group.WebSocket.Options.Cookies = _cookieContainer;
         group.WebSocket.Options.AddSubProtocol("rws_subscription");
 
         Uri wsUri = new Uri(group.WebSocketUrl);
+        Console.WriteLine($"[ConnectWebSocketAsync] wsUri:{wsUri}");
         await group.WebSocket.ConnectAsync(wsUri, group.CancellationTokenSource.Token);
         group.ListenerTask = Task.Run(() => ListenLoopAsync(group, group.CancellationTokenSource.Token), group.CancellationTokenSource.Token);
     }
@@ -257,10 +295,10 @@ public class SubscriptionService : IDisposable
 
                 string messageRaw = Encoding.UTF8.GetString(buffer, 0, result.Count);
 
-                // 1. Notificación genérica (por si se usa fuera)
+
                 OnNotificationReceived?.Invoke(group.GroupID, messageRaw);
 
-                // 2. CRUCIAL: Pasamos el XHTML al enrutador para que dispare los eventos tipados
+
                 ParseAndEmitEvent(messageRaw);
             }
         }
