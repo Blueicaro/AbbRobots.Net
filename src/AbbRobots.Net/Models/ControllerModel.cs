@@ -1,10 +1,18 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace AbbRobots.Net.Models;
 
 /// <summary>
 /// It represents the general status of the OmniCore controller.
 /// </summary>
+
+
+public class ControllerStateChangeEventArgs:EventArgs
+{
+    public string CtrlState{get;set;}=string.Empty;
+    public string Mode{get;set;}=string.Empty;
+}
 public class ControllerModel
 {
     public string ControllerName{get;set;} = string.Empty;
@@ -12,8 +20,8 @@ public class ControllerModel
     public string CtrlState{get;set;}=string.Empty;
 }
 
-public class ControllerStateChangeEventArgs:EventArgs
+public class BackupStateModel
 {
-    public string CtrlState{get;set;}=string.Empty;
-    public string Mode{get;set;}=string.Empty;
+    [JsonPropertyName("backup-state")]
+    public string backupstate{get;set;}=string.Empty;
 }

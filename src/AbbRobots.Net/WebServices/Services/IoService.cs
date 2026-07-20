@@ -26,12 +26,12 @@ public class IoService
 
         while (!string.IsNullOrEmpty(urlNextPage))
         {
-            using var respuesta = await _httpClient.GetRwsAsync(urlNextPage);
-            if (!respuesta.IsSuccessStatusCode)
+            using var responseMessage = await _httpClient.GetRwsAsync(urlNextPage);
+            if (!responseMessage.IsSuccessStatusCode)
             {
                 break;
             }
-            string jsonRaw = await respuesta.Content.ReadAsStringAsync();
+            string jsonRaw = await responseMessage.Content.ReadAsStringAsync();
             var response = JsonSerializer.Deserialize<RwsSignalResponse>(jsonRaw);
             if (response?.Embedded?.Resources != null)
             {
