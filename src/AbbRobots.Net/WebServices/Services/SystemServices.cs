@@ -19,6 +19,8 @@ public class SystemService
         _httpClient = httpClient;
     }
 
+    public object Diagnostics { get; internal set; }
+
     ///<summary>
     /// Makes a reboot
     /// </summary>

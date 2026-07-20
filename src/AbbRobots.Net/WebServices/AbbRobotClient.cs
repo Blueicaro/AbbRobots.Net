@@ -19,7 +19,7 @@ public class AbbRobotClient
     private SystemService? _system;
     private ControllerService? _controllerService;
 
-    private SubscriptionService _subscriptionService;
+    private SubscriptionService? _subscriptionService;
 
     public RobotWareService RobotWare => _robotWare
         ?? throw new InvalidOperationException("RobotWare cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
@@ -95,7 +95,6 @@ public class AbbRobotClient
         _mastership = new MastershipService(_httpClient);
         _system = new SystemService(_httpClient);
         _controllerService = new ControllerService(_httpClient);
-
-      
+        _subscriptionService = new SubscriptionService(_httpClient,_robotIp,_cookieContainer);      
     }
 }
