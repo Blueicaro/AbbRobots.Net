@@ -50,16 +50,28 @@ public class SubscriptionService : IDisposable
     {
         try
         {
-            var element = XElement.Parse(xmlMessage);
-            string eventClass = element.Attribute("class")?.Value ?? string.Empty;
+            // Loading the file
+            var doc = XDocument.Parse(xmlMessage);
+            // Searching for any attribut "class" 
+            var targetElement = doc.Descendants().FirstOrDefault(e => e.Attribute("class")?.Value == "ios-signalstate-ev" ||
+            e.Attribute("class")?.Value == "pnl-ctrlstate-ev");
+
+            if (targetElement == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Parser] No supported event was found in the plot.");
+                return;
+            }
+
+            string eventClass = targetElement.Attribute("class")?.Value ?? string.Empty;
+
 
             switch (eventClass)
             {
                 case "ios-signalstate-ev":
-                    ProcessSignalEvent(element);
+                    ProcessSignalEvent(targetElement);
                     break;
                 case "pnl-ctrlstate-ev":
-                    ProcessControllerStateEvent(element);
+                    ProcessControllerStateEvent(targetElement);
                     break;
                 default:
                     System.Diagnostics.Debug.WriteLine($"[Parser] Event not supported");
@@ -75,40 +87,34 @@ public class SubscriptionService : IDisposable
 
     private void ProcessSignalEvent(XElement element)
     {
-        string href = element.Element("a")?.Attribute("href")?.Value ?? string.Empty;
-        string signalName = ExtractLastSegment(href);
-
-        if (string.IsNullOrEmpty(signalName)) return;
-
-        // Buscamos los valores dentro de las etiquetas span filtrando por su clase
-        string valor = element.Elements("span")
-            .FirstOrDefault(e => e.Attribute("class")?.Value == "lvalue")?.Value ?? "0";
-
-        string estado = element.Elements("span")
-            .FirstOrDefault(e => e.Attribute("class")?.Value == "lstate")?.Value ?? string.Empty;
-
-        bool esSimulada = estado.Equals("simulated", StringComparison.OrdinalIgnoreCase);
-
-        OnSignalChanged?.Invoke(this, new SignalChangedEventArgs
-        {
-            SignalName = signalName,
-            Value = valor,
-            IsSimulated = esSimulada
-        });
-    }
-    private void ProcessControllerStateEvent(XElement elemento)
-    {
-        string estadoCtrl = elemento.Elements("span")
-            .FirstOrDefault(e => e.Attribute("class")?.Value == "ctrlstate")?.Value ?? string.Empty;
-
-        string modo = elemento.Elements("span")
-            .FirstOrDefault(e => e.Attribute("class")?.Value == "ctrlmode")?.Value ?? string.Empty;
+        string estadoCtrl = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "span" && e.Attribute("class")?.Value == "ctrlstate")?.Value ?? string.Empty;
+        string modo = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "span" && e.Attribute("class")?.Value == "ctrlmode")?.Value ?? string.Empty;
 
         OnControllerStateChanged?.Invoke(this, new ControllerStateChangeEventArgs
         {
             CtrlState = estadoCtrl,
             Mode = modo
         });
+    }
+    private void ProcessControllerStateEvent(XElement element)
+    {
+      var anchor = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "a");
+    string href = anchor?.Attribute("href")?.Value ?? string.Empty;
+    string signalName = ExtractLastSegment(href);
+
+    if (string.IsNullOrEmpty(signalName)) return;
+
+    string valor = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "span" && e.Attribute("class")?.Value == "lvalue")?.Value ?? "0";
+    string estado = element.Descendants().FirstOrDefault(e => e.Name.LocalName == "span" && e.Attribute("class")?.Value == "lstate")?.Value ?? string.Empty;
+
+    bool esSimulada = estado.Equals("simulated", StringComparison.OrdinalIgnoreCase);
+
+    OnSignalChanged?.Invoke(this, new SignalChangedEventArgs
+    {
+        SignalName = signalName,
+        Value = valor,
+        IsSimulated = esSimulada
+    });
     }
 
     private string ExtractLastSegment(string href)
@@ -137,34 +143,34 @@ public class SubscriptionService : IDisposable
         await SubscribeToResourceInternalAsync(resource, priority);
     }
 
- private async Task SubscribeToResourceInternalAsync(string resourceUri, SubscriptionPriority priority)
-{
-    await _semaphore.WaitAsync();
-    try
+    private async Task SubscribeToResourceInternalAsync(string resourceUri, SubscriptionPriority priority)
     {
-        int limitCapacity = priority == SubscriptionPriority.High ? 64 : 1000;
-        var groupAvaliable = _activeGroups.FirstOrDefault(g => g.Priority == priority && (g.Resources.Count < limitCapacity));
-        
-        if (groupAvaliable != null)
+        await _semaphore.WaitAsync();
+        try
         {
-            await AddResourceToGroupAsync(groupAvaliable, resourceUri);
-        }
-        else
-        {
-            if (_activeGroups.Count >= 10)
-            {
-                throw new InvalidOperationException("The limit of 10 subscription groups has been reached.");
-            }
+            int limitCapacity = priority == SubscriptionPriority.High ? 64 : 1000;
+            var groupAvaliable = _activeGroups.FirstOrDefault(g => g.Priority == priority && (g.Resources.Count < limitCapacity));
 
-            // CRUCIAL: Si no hay grupo disponible, ¡lo creamos!
-            await CreateNewSubscriptionGroupAsync(resourceUri, priority, limitCapacity);
+            if (groupAvaliable != null)
+            {
+                await AddResourceToGroupAsync(groupAvaliable, resourceUri);
+            }
+            else
+            {
+                if (_activeGroups.Count >= 10)
+                {
+                    throw new InvalidOperationException("The limit of 10 subscription groups has been reached.");
+                }
+
+                // CRUCIAL: Si no hay grupo disponible, ¡lo creamos!
+                await CreateNewSubscriptionGroupAsync(resourceUri, priority, limitCapacity);
+            }
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
-    finally
-    {
-        _semaphore.Release();
-    }
-}
 
     private async Task AddResourceToGroupAsync(SubscriptionGroup group, string resourceUri)
     {
@@ -193,7 +199,7 @@ public class SubscriptionService : IDisposable
       {
           {"resources","1"},
           {"1",resourceUri},
-          {"prority","1"},
+          {"priority","1"},
           {"1-p",((int)priority).ToString()}
       };
 
@@ -237,36 +243,37 @@ public class SubscriptionService : IDisposable
         group.ListenerTask = Task.Run(() => ListenLoopAsync(group, group.CancellationTokenSource.Token), group.CancellationTokenSource.Token);
     }
     private async Task ListenLoopAsync(SubscriptionGroup group, CancellationToken token)
-{
-    var buffer = new byte[1024 * 8];
-    try
     {
-        while (group.WebSocket != null && group.WebSocket.State == WebSocketState.Open && !token.IsCancellationRequested)
+        var buffer = new byte[1024 * 8];
+        try
         {
-            var result = await group.WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
-            if (result.MessageType == WebSocketMessageType.Close)
+            while (group.WebSocket != null && group.WebSocket.State == WebSocketState.Open && !token.IsCancellationRequested)
             {
-                break;
-            }
-            
-            string messageRaw = Encoding.UTF8.GetString(buffer, 0, result.Count);
-            
-            // 1. Notificación genérica (por si se usa fuera)
-            OnNotificationReceived?.Invoke(group.GroupID, messageRaw);
+                var result = await group.WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    break;
+                }
 
-            // 2. CRUCIAL: Pasamos el XHTML al enrutador para que dispare los eventos tipados
-            ParseAndEmitEvent(messageRaw);
+                string messageRaw = Encoding.UTF8.GetString(buffer, 0, result.Count);
+
+                // 1. Notificación genérica (por si se usa fuera)
+                OnNotificationReceived?.Invoke(group.GroupID, messageRaw);
+
+                // 2. CRUCIAL: Pasamos el XHTML al enrutador para que dispare los eventos tipados
+                ParseAndEmitEvent(messageRaw);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Do nothing
+        }
+        catch (Exception ex)
+        {
+            Console.Write($"[Grupo {group.GroupID}] Error de conexión WebSocket: {ex.Message}");
         }
     }
-    catch (OperationCanceledException)
-    {
-        // Do nothing
-    }
-    catch (Exception ex)
-    {
-        Console.Write($"[Grupo {group.GroupID}] Error de conexión WebSocket: {ex.Message}");
-    }
-}    public void Dispose()
+    public void Dispose()
     {
         _semaphore.Dispose();
         foreach (var group in _activeGroups)
@@ -278,15 +285,15 @@ public class SubscriptionService : IDisposable
         _activeGroups.Clear();
     }
     internal class SubscriptionGroup
-{
-    public string GroupID { get; set; } = string.Empty;
-    public string WebSocketUrl { get; set; } = string.Empty;
-    public SubscriptionPriority Priority { get; set; }
-    public int MaxCapacity { get; set; }
-    public List<string> Resources { get; set; } = new();
-    public ClientWebSocket? WebSocket { get; set; }
-    public CancellationTokenSource? CancellationTokenSource { get; set; }
-    public Task? ListenerTask { get; set; }
+    {
+        public string GroupID { get; set; } = string.Empty;
+        public string WebSocketUrl { get; set; } = string.Empty;
+        public SubscriptionPriority Priority { get; set; }
+        public int MaxCapacity { get; set; }
+        public List<string> Resources { get; set; } = new();
+        public ClientWebSocket? WebSocket { get; set; }
+        public CancellationTokenSource? CancellationTokenSource { get; set; }
+        public Task? ListenerTask { get; set; }
 
-}
+    }
 }
