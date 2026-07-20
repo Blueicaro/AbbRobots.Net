@@ -2,15 +2,43 @@ using System.Text.Json.Serialization;
 
 namespace AbbRobots.Net.Models;
 
-/// <Summary>
+
+///<summary
+/// It represents the state of an I/O signal on the robot.
+/// </summary>
+
+public class SignalModel
+{
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+}
+
+///<summary>
+/// Event data that triggers when an I/O signal changes value.
+///</summary>
+
+public class SignalChangedEventArgs : EventArgs
+{
+    public string SignalName { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+    public bool IsSimulated { get; set; }
+}
+
+
+
+
+
+
+/// <summary>
 /// It represents the root of the JSON returned by the robot.
 /// </summary>
 public class RwsSignalResponse
 {
     [JsonPropertyName("_embedded")]
-    public EmbeddedSignals Embedded{get; set;} = new();
+    public EmbeddedSignals Embedded { get; set; } = new();
     [JsonPropertyName("_Links")]
-    public RwsLinks Links{get; set;}=new();
+    public RwsLinks Links { get; set; } = new();
 }
 
 /// <summary>
@@ -19,13 +47,13 @@ public class RwsSignalResponse
 public class RwsLinks
 {
     [JsonPropertyName("next")]
-    public RwsLinkItem? Next {get; set;}
+    public RwsLinkItem? Next { get; set; }
 }
 
 public class RwsLinkItem
 {
     [JsonPropertyName("href")]
-    public string HRef {get; set;}= string.Empty;
+    public string HRef { get; set; } = string.Empty;
 }
 public class EmbeddedSignals
 {
@@ -45,7 +73,7 @@ public class RwsSignal
     public string Type { get; set; } = string.Empty; // DI, DO, GI, GO
 
     [JsonPropertyName("category")]
-    public string Category { get; set; } = string.Empty; 
+    public string Category { get; set; } = string.Empty;
 
     [JsonPropertyName("lvalue")]
     public string LogicalValue { get; set; } = string.Empty; // "0" o "1"

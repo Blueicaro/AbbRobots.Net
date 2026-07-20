@@ -8,18 +8,26 @@ using System.Net.WebSockets;
 using System.Net;
 using System.Security;
 using System.Security.Cryptography.X509Certificates;
+using AbbRobots.Net.Models;
+using System.Xml.Linq;
+using System.Diagnostics;
+using System.Xml;
 
 namespace AbbRobots.Net.WebServices.Services;
 
 
+
 public class SubscriptionService : IDisposable
 {
+
     private readonly HttpClient _httpClient;
     private readonly string _robotIp;
     private CookieContainer _cookieContainer;
     private List<SubscriptionGroup> _activeGroups = new();
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     public event Action<string, string>? OnNotificationReceived;
+    public EventHandler<SignalChangedEventArgs>? OnSignalChanged;
+    public EventHandler<ControllerStateChangeEventArgs>? OnControllerStateChanged;
     public SubscriptionService(HttpClient httpClient, string robotIp, CookieContainer cookieContainer)
     {
         _httpClient = httpClient;
@@ -35,11 +43,88 @@ public class SubscriptionService : IDisposable
     }
 
     /// <summary>
+    /// Event router. Receive the XHTML from the WebSocket and dispatch the typed event.
+    /// </summary>
+    /// <param name="xmlMessage"></param>
+    private void ParseAndEmitEvent(string xmlMessage)
+    {
+        try
+        {
+            var element = XElement.Parse(xmlMessage);
+            string eventClass = element.Attribute("class")?.Value ?? string.Empty;
+
+            switch (eventClass)
+            {
+                case "ios-signalstate-ev":
+                    ProcessSignalEvent(element);
+                    break;
+                case "pnl-ctrlstate-ev":
+                    ProcessControllerStateEvent(element);
+                    break;
+                default:
+                    System.Diagnostics.Debug.WriteLine($"[Parser] Event not supported");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Parser] Invalid control message or frame: {ex.Message}");
+        }
+    }
+
+
+    private void ProcessSignalEvent(XElement element)
+    {
+        string href = element.Element("a")?.Attribute("href")?.Value ?? string.Empty;
+        string signalName = ExtractLastSegment(href);
+
+        if (string.IsNullOrEmpty(signalName)) return;
+
+        // Buscamos los valores dentro de las etiquetas span filtrando por su clase
+        string valor = element.Elements("span")
+            .FirstOrDefault(e => e.Attribute("class")?.Value == "lvalue")?.Value ?? "0";
+
+        string estado = element.Elements("span")
+            .FirstOrDefault(e => e.Attribute("class")?.Value == "lstate")?.Value ?? string.Empty;
+
+        bool esSimulada = estado.Equals("simulated", StringComparison.OrdinalIgnoreCase);
+
+        OnSignalChanged?.Invoke(this, new SignalChangedEventArgs
+        {
+            SignalName = signalName,
+            Value = valor,
+            IsSimulated = esSimulada
+        });
+    }
+    private void ProcessControllerStateEvent(XElement elemento)
+    {
+        string estadoCtrl = elemento.Elements("span")
+            .FirstOrDefault(e => e.Attribute("class")?.Value == "ctrlstate")?.Value ?? string.Empty;
+
+        string modo = elemento.Elements("span")
+            .FirstOrDefault(e => e.Attribute("class")?.Value == "ctrlmode")?.Value ?? string.Empty;
+
+        OnControllerStateChanged?.Invoke(this, new ControllerStateChangeEventArgs
+        {
+            CtrlState = estadoCtrl,
+            Mode = modo
+        });
+    }
+
+    private string ExtractLastSegment(string href)
+    {
+        if (string.IsNullOrEmpty(href)) return string.Empty;
+        // Limpiamos los parámetros de la URL tipo ';state' si vienen
+        string path = href.Split(';')[0];
+        return path.Split('/').Last();
+    }
+}
+
+    /// <summary>
     /// 
     /// </summary>
     /// <param name="signalName">String contains signal</param>
     /// <param name="subscriptionPriority">set priority. </param>
-
     public async Task SubscribeToSignalAsync(string signalName, SubscriptionPriority priority = SubscriptionPriority.Medium)
     {
         string resource = $"/rw/iosystem/signals/{signalName};state";
@@ -188,15 +273,15 @@ public class SubscriptionService : IDisposable
         _activeGroups.Clear();
     }
     internal class SubscriptionGroup
-    {
-        public string GroupID { get; set; } = string.Empty;
-        public string WebSocketUrl { get; set; } = string.Empty;
-        public SubscriptionPriority Priority { get; set; }
-        public int MaxCapacity { get; set; }
-        public List<string> Resources { get; set; } = new();
-        public ClientWebSocket? WebSocket { get; set; }
-        public CancellationTokenSource? CancellationTokenSource { get; set; }
-        public Task? ListenerTask { get; set; }
+{
+    public string GroupID { get; set; } = string.Empty;
+    public string WebSocketUrl { get; set; } = string.Empty;
+    public SubscriptionPriority Priority { get; set; }
+    public int MaxCapacity { get; set; }
+    public List<string> Resources { get; set; } = new();
+    public ClientWebSocket? WebSocket { get; set; }
+    public CancellationTokenSource? CancellationTokenSource { get; set; }
+    public Task? ListenerTask { get; set; }
 
-    }
+}
 }

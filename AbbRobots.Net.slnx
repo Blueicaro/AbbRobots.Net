@@ -7,4 +7,5 @@
     <Project Path="tests/AbbRobots.Net.EioTest/AbbRobots.Net.EioTest.csproj" />
     <Project Path="tests/AbbRobots.Net.MasterShipTest/AbbRobots.Net.MasterShipTest.csproj" />
   </Folder>
+  <Project Path="../../temp/Recurso/ConsoleApp1/ConsoleApp1.csproj" />
 </Solution>
