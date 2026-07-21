@@ -19,12 +19,11 @@ public class SystemService
         _httpClient = httpClient;
     }
 
-    public object Diagnostics { get; internal set; }
+
 
     ///<summary>
-    /// Makes a reboot
+    /// Makes a reboot/// 
     /// </summary>
-
     public async Task<bool> RestartRobotAsync()
     {
 
