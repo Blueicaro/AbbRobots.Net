@@ -1,18 +1,17 @@
-using System.Net.Http;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Threading.Tasks;
 using AbbRobots.Net.Models;
-
 namespace AbbRobots.Net.WebServices.Services;
-
 public class IoService
 {
-    private readonly HttpClient _httpClient;
 
-    public IoService(HttpClient client)
+
+    private readonly HttpClient _httpClient;
+    private readonly SubscriptionService _subscriptionService;
+
+    public IoService(HttpClient client, SubscriptionService subscription)
     {
         _httpClient = client;
+        _subscriptionService = subscription;
     }
 
     /// <summary>
@@ -106,5 +105,20 @@ public class IoService
     public async Task<bool> WriteSignalAsync(string signalName, bool active)
     {
         return await WriteSignalAsync(signalName, active ? "1" : "0");
+    }
+
+    /// <summary>
+    /// Se suscribe a una señal y ejecuta la rutina proporcionada cada vez que cambie.
+    /// </summary>
+    /// <param name="signalName">Nombre de la señal.</param>
+    /// <param name="onSignalUpdate">Rutina/Método del usuario donde recibirá los datos.</param>
+    /// <returns>Un IDisposable para detener la recepción de notificaciones de esta rutina.</returns>
+    public async Task<IDisposable> SubscribeToSignalAsync(
+
+        string signalName,
+        Action<SignalChangedEventArgs> onSignalUpdate,
+        SubscriptionPriority priority = SubscriptionPriority.Medium)
+    {
+        return await _subscriptionService.SubscribeToSignalAsync(signalName, onSignalUpdate, priority);
     }
 }

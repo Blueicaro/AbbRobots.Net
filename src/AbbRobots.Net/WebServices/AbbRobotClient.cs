@@ -1,10 +1,6 @@
-using System;
-using System.Dynamic;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading.Tasks;
 using AbbRobots.Net.WebServices.Services;
 
 namespace AbbRobots.Net.WebServices;
@@ -30,7 +26,7 @@ public class AbbRobotClient
 
     public SystemService System => _system ?? throw new InvalidOperationException("System cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
 
-    public SubscriptionService Events => _subscriptionService ?? throw new InvalidOperationException("Events cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
+    // public SubscriptionService Events => _subscriptionService ?? throw new InvalidOperationException("Events cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
 
     public ControllerService Controller => _controllerService ?? throw new InvalidOperationException("Controller cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
 
@@ -91,10 +87,12 @@ public class AbbRobotClient
         _isVirtualController = tempRobotWare.IsVirtualController;
 
         _robotWare = tempRobotWare;
-        _io = new IoService(_httpClient);
+
+        _subscriptionService = new SubscriptionService(_httpClient,_robotIp,_cookieContainer);     
+        _io = new IoService(_httpClient,_subscriptionService);
         _mastership = new MastershipService(_httpClient);
         _system = new SystemService(_httpClient);
-        _controllerService = new ControllerService(_httpClient);
-        _subscriptionService = new SubscriptionService(_httpClient,_robotIp,_cookieContainer);      
+        _controllerService = new ControllerService(_httpClient,_subscriptionService);
+         
     }
 }
