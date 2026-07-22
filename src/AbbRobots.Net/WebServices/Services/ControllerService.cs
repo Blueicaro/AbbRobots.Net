@@ -23,7 +23,7 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using AbbRobots.Net.Models;
 
-namespace AbbRobots.Net.WebServices;
+namespace AbbRobots.Net.WebServices.Services;
 
 public class ControllerService : IControllerService
 {

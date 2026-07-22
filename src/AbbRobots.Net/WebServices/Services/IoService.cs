@@ -1,124 +1,52 @@
-using System.Text.Json;
+using System.Net.Http.Json;
 using AbbRobots.Net.Models;
+using AbbRobots.Net.WebServices.Services;
+
 namespace AbbRobots.Net.WebServices.Services;
-public class IoService
+
+public class IoService : IIoService
 {
-
-
+    #region Fields
     private readonly HttpClient _httpClient;
     private readonly SubscriptionService _subscriptionService;
-
-    public IoService(HttpClient client, SubscriptionService subscription)
+    private const string BaseIoResource = "/rw/iosystem";
+    #endregion
+    #region  Constructor
+    public IoService(HttpClient httpClient, SubscriptionService subscriptionService)
     {
-        _httpClient = client;
-        _subscriptionService = subscription;
+        _httpClient = httpClient;
+        _subscriptionService = subscriptionService;
+    }
+    #endregion
+
+    #region  Public API
+    /// <inheritdoc/>
+    public async Task<string> GtSignalValueAsync(string signalName, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(signalName);
+        string requestUri = $"{BaseIoResource}/signals{signalName}/state";
+        HttpResponseMessage response = await _httpClient.GetAsync(requestUri, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        string signalValue = await ExtractValueFromRwsResponseAsync(response, cancellationToken);
+        return signalValue;
     }
 
-    /// <summary>
-    /// It retrieves all the robot's signals, already parsed and ready for use.
-    /// </summary>    
-    public async Task<List<RwsSignal>> GetSignalsAsync()
+
+    /// <inheritdoc />
+    public Task SetSignalValueAsync(string signalName, string value, CancellationToken cancellationToken = default)
     {
-
-        var SignalList = new List<RwsSignal>();
-        string urlNextPage = "rw/iosystem/signals";
-
-        while (!string.IsNullOrEmpty(urlNextPage))
-        {
-            using var responseMessage = await _httpClient.GetRwsAsync(urlNextPage);
-            if (!responseMessage.IsSuccessStatusCode)
-            {
-                break;
-            }
-            string jsonRaw = await responseMessage.Content.ReadAsStringAsync();
-            var response = JsonSerializer.Deserialize<RwsSignalResponse>(jsonRaw);
-            if (response?.Embedded?.Resources != null)
-            {
-                SignalList.AddRange(response.Embedded.Resources);
-            }
-
-            string? nextHref = response?.Links?.Next?.HRef;
-            if (!string.IsNullOrEmpty(nextHref))
-            {
-                urlNextPage = nextHref.StartsWith("/rw.iosystem") ? nextHref : $"rw/iosystem/{nextHref}";
-            }
-        }
-        return SignalList;
+        throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Creates or modifies an I/O signal in the robot configuration database (live EIO.cfg)
-    /// using the official ABB CFG Service endpoint.
-    /// </summary>
-
-    public async Task<bool> CreateSignalInConfigurationAsync(SignalItem signal)
+    /// <inheritdoc />
+    public Task<IDisposable> SubscribeToSignalAsync(string signalName, Action<SignalChangedEventArgs> onSignalUpdate, SubscriptionPriority priority = SubscriptionPriority.Medium)
     {
-        string urlEndpoint = "rw/cfg/eio/signal?action=create";
-
-        var formFields = new Dictionary<string, string>
-        {
-            {"name" , signal.Name}
-        };
-
-        if (!string.IsNullOrEmpty(signal.SignalType)) formFields.Add("type", signal.SignalType); // Ojo: a veces en API pide 'type' en vez de 'signal-type'
-        if (!string.IsNullOrEmpty(signal.Device)) formFields.Add("device", signal.Device);
-        if (!string.IsNullOrEmpty(signal.DeviceMap)) formFields.Add("devicemap", signal.DeviceMap);
-        if (!string.IsNullOrEmpty(signal.Label)) formFields.Add("label", signal.Label);
-        if (!string.IsNullOrEmpty(signal.Category)) formFields.Add("category", signal.Category);
-        if (!string.IsNullOrEmpty(signal.Access)) formFields.Add("access", signal.Access);
-        if (!string.IsNullOrEmpty(signal.DefaultValue)) formFields.Add("default", signal.DefaultValue);
-        if (!string.IsNullOrEmpty(signal.Invert)) formFields.Add("invert", signal.Invert);
-
-        var postContent = new FormUrlEncodedContent(formFields);
-
-        var response = await _httpClient.PostAsync(urlEndpoint, postContent);
-
-        return response.IsSuccessStatusCode;
-
+        throw new NotImplementedException();
     }
+    #endregion
 
-    /// <summary>
-    /// Changes the logical value of a signal on the ABB robot (for example, activates or deactivates a DO).
-    /// </summary>
-    /// <param name="signalName">Exact name of the signal on the I/O map</param>
-    /// <param name="value">The new value in text format (usually "1" or "0").</param>
-    /// <returns>True if the robot successfully accepted the change, False otherwise.</returns>
-    public async Task<bool> WriteSignalAsync(string signalName, string value)
+    private async Task<string> ExtractValueFromRwsResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        // RWS requires the "set" action to be passed as a parameter in the URL query string.
-        string url = $"rw/iosystem/signals/{signalName}?action=set";
-        var fields = new Dictionary<string, string>
-     {
-         {"lvalue",value}
-     };
-        // Helper, which already configures the urlencoded headers and the POST method.
-        using var response = await _httpClient.PostRwsFormAsync(url, fields);
-        return response.IsSuccessStatusCode;
-    }
-
-    /// <summary>
-    ///  Changes the logical value of a signal on the ABB robot (for example, activates or deactivates a DO).
-    /// </summary>
-    /// <param name="signalName">Exact name of the signal on the I/O map</param>
-    /// <param name="active">The new value in format true or false</param>
-    /// <returns>True if the robot successfully accepted the change, False otherwise.</returns>
-    public async Task<bool> WriteSignalAsync(string signalName, bool active)
-    {
-        return await WriteSignalAsync(signalName, active ? "1" : "0");
-    }
-
-    /// <summary>
-    /// Se suscribe a una señal y ejecuta la rutina proporcionada cada vez que cambie.
-    /// </summary>
-    /// <param name="signalName">Nombre de la señal.</param>
-    /// <param name="onSignalUpdate">Rutina/Método del usuario donde recibirá los datos.</param>
-    /// <returns>Un IDisposable para detener la recepción de notificaciones de esta rutina.</returns>
-    public async Task<IDisposable> SubscribeToSignalAsync(
-
-        string signalName,
-        Action<SignalChangedEventArgs> onSignalUpdate,
-        SubscriptionPriority priority = SubscriptionPriority.Medium)
-    {
-        return await _subscriptionService.SubscribeToSignalAsync(signalName, onSignalUpdate, priority);
+        throw new NotImplementedException();
     }
 }

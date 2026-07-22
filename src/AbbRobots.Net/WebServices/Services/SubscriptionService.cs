@@ -5,7 +5,7 @@ using AbbRobots.Net.Models;
 using System.Xml.Linq;
 
 
-namespace AbbRobots.Net.WebServices;
+namespace AbbRobots.Net.WebServices.Services;
 
 
 
@@ -21,6 +21,7 @@ public class SubscriptionService : IDisposable
     public event Action<string, string>? OnNotificationReceived;
     // public EventHandler<SignalChangedEventArgs>? OnSignalChanged;
     public EventHandler<ControllerStateChangeEventArgs>? OnControllerStateChanged;
+    public event EventHandler<BackupProgressEventArgs>? OnBackupProgressChanged;
     public EventHandler<BackupStateChangeEventArgs>? OnBackupStateUpdate;
     public SubscriptionService(HttpClient httpClient, string robotIp, CookieContainer cookieContainer)
     {
@@ -41,10 +42,10 @@ public class SubscriptionService : IDisposable
 
         OnSignalChanged += handler;
         string resource = $"/rw/iosystem/signals/{signalName};state";
-        await SubscribeToResourceInternalAsync(resource,priority);
+        await SubscribeToResourceInternalAsync(resource, priority);
         return new SubscriptionDisposer(() =>
         {
-            OnSignalChanged-=handler;
+            OnSignalChanged -= handler;
         });
     }
 
@@ -81,7 +82,7 @@ public class SubscriptionService : IDisposable
     }
 
 
-    private async Task SubscribeToResourceInternalAsync(string resourceUri, SubscriptionPriority priority)
+    internal async Task SubscribeToResourceInternalAsync(string resourceUri, SubscriptionPriority priority)
     {
         Console.WriteLine($"[DEBUG] Entrando a suscribir: {resourceUri}. Grupos activos actuales: {_activeGroups.Count}");
         await _semaphore.WaitAsync();
@@ -111,6 +112,35 @@ public class SubscriptionService : IDisposable
         }
     }
 
+
+    public async Task<IDisposable> SubscribeToBackupProgressAsync(
+        string backupName,
+        Action<BackupProgressEventArgs> onProgress,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(onProgress);
+
+
+        EventHandler<BackupProgressEventArgs> handler = (sender, args) =>
+        {
+            if (args.BackupName.Equals(backupName, StringComparison.OrdinalIgnoreCase))
+            {
+                onProgress(args);
+            }
+        };
+
+
+        OnBackupProgressChanged += handler;
+
+
+        await SubscribeToResourceInternalAsync("/ctrl/backup", SubscriptionPriority.High);
+
+        // Devolvemos el limpiador
+        return new SubscriptionDisposer(() =>
+        {
+            OnBackupProgressChanged -= handler;
+        });
+    }
 
     /// <summary>
     /// Event router. Receive the XHTML from the WebSocket and dispatch the typed event.
@@ -356,6 +386,14 @@ public class SubscriptionService : IDisposable
         public CancellationTokenSource? CancellationTokenSource { get; set; }
         public Task? ListenerTask { get; set; }
 
+    }
+
+    /// <summary>
+    /// Notifica a los suscriptores cuando se recibe una actualización de progreso de backup desde el WebSocket.
+    /// </summary>
+    internal void RaiseBackupProgressChanged(BackupProgressEventArgs args)
+    {
+        OnBackupProgressChanged?.Invoke(this, args);
     }
 }
 internal class SubscriptionDisposer : IDisposable
