@@ -1,6 +1,6 @@
 
 using AbbRobots.Net.Models;
-namespace AbbRobots.Net.WebServices.Services;
+namespace AbbRobots.Net.WebServices;
 
 
 public interface IControllerService

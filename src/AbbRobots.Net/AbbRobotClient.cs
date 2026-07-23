@@ -1,9 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using AbbRobots.Net.WebServices.Services;
+using AbbRobots.Net.WebServices;
 
-namespace AbbRobots.Net.WebServices;
+
+namespace AbbRobots.Net;
 
 public class AbbRobotClient
 {

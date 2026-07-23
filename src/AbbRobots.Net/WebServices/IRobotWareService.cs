@@ -1,4 +1,4 @@
-namespace AbbRobots.Net.WebServices.Services;
+namespace AbbRobots.Net.WebServices;
 
 public interface IRobotWareService
 {

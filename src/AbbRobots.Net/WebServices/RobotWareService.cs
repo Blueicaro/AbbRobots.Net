@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using AbbRobots.Net.Models;
 
-namespace AbbRobots.Net.WebServices.Services;
+namespace AbbRobots.Net.WebServices;
 
 public class RobotWareService:IRobotWareService
 {

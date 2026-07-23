@@ -5,7 +5,7 @@ using AbbRobots.Net.Models;
 using System.Xml.Linq;
 
 
-namespace AbbRobots.Net.WebServices.Services;
+namespace AbbRobots.Net.WebServices;
 
 
 

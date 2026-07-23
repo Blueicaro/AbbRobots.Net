@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace AbbRobots.Net.WebServices.Services;
+namespace AbbRobots.Net.WebServices;
 
 /// <summary>
 /// Service dedicated to managing exclusive control (Mastership) over the different domains of the ABB robot.

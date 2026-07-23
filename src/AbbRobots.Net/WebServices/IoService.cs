@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using AbbRobots.Net.Models;
-using AbbRobots.Net.WebServices.Services;
+using AbbRobots.Net.WebServices;
 
-namespace AbbRobots.Net.WebServices.Services;
+namespace AbbRobots.Net.WebServices;
 
 public class IoService : IIoService
 {
