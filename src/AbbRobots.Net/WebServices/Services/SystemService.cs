@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Net.Http;
-using System.Threading.Tasks;
+
 
 namespace AbbRobots.Net.WebServices.Services;
 
@@ -10,7 +7,7 @@ namespace AbbRobots.Net.WebServices.Services;
 ///  Service dedicated to global robot system operations (restarts, statuses, versions).
 /// </summary>
 
-public class SystemService
+public class SystemService : ISystemService
 {
     private readonly HttpClient _httpClient;
 
@@ -20,10 +17,8 @@ public class SystemService
     }
 
 
-
-    ///<summary>
-    /// Makes a reboot/// 
-    /// </summary>
+    #region Public API
+    /// <inheritdoc/>
     public async Task<bool> RestartRobotAsync()
     {
 
@@ -32,5 +27,6 @@ public class SystemService
         return response.IsSuccessStatusCode;
 
     }
+    #endregion
 
 }

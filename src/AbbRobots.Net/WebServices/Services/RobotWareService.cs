@@ -5,7 +5,7 @@ using AbbRobots.Net.Models;
 
 namespace AbbRobots.Net.WebServices.Services;
 
-public class RobotWareService
+public class RobotWareService:IRobotWareService
 {
     private readonly HttpClient _httpClient;
 
