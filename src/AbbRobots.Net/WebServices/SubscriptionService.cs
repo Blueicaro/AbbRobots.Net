@@ -11,23 +11,50 @@ namespace AbbRobots.Net.WebServices;
 
 public class SubscriptionService : IDisposable
 {
-    public EventHandler<SignalChangedEventArgs>? OnSignalChanged;
-
+    public event EventHandler<SignalChangedEventArgs>? OnSignalChanged;
+    public event EventHandler<ControllerStateChangeEventArgs>? OnControllerStateChanged;
+    public event Action<string, string>? OnNotificationReceived;
+    public event EventHandler<BackupProgressEventArgs>? OnBackupProgressChanged;
+    public event EventHandler<BackupStateChangeEventArgs>? OnBackupStateUpdate;
     private readonly HttpClient _httpClient;
     private readonly string _robotIp;
+    private bool _disposed;
     private CookieContainer _cookieContainer;
     private List<SubscriptionGroup> _activeGroups = new();
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    public event Action<string, string>? OnNotificationReceived;
-    // public EventHandler<SignalChangedEventArgs>? OnSignalChanged;
-    public EventHandler<ControllerStateChangeEventArgs>? OnControllerStateChanged;
-    public event EventHandler<BackupProgressEventArgs>? OnBackupProgressChanged;
-    public EventHandler<BackupStateChangeEventArgs>? OnBackupStateUpdate;
     public SubscriptionService(HttpClient httpClient, string robotIp, CookieContainer cookieContainer)
     {
         _httpClient = httpClient;
         _robotIp = robotIp;
         _cookieContainer = cookieContainer;
+    }
+
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        await _semaphore.WaitAsync();
+        List<SubscriptionGroup> groupsSnapshot;
+        try { groupsSnapshot = _activeGroups.ToList(); }
+        finally { _semaphore.Release(); }
+
+        foreach (var group in groupsSnapshot)
+            group.CancellationTokenSource?.Cancel();
+
+        await Task.WhenAll(groupsSnapshot
+            .Where(g => g.ListenerTask != null)
+            .Select(g => g.ListenerTask!));
+
+        foreach (var group in groupsSnapshot)
+        {
+            group.WebSocket?.Dispose();
+            group.CancellationTokenSource?.Dispose();
+        }
+
+        _activeGroups.Clear();
+        _semaphore.Dispose();
     }
 
     public async Task<IDisposable> SubscribeToSignalAsync(string signalName, Action<SignalChangedEventArgs> onSignalUpdate, SubscriptionPriority priority)
@@ -362,18 +389,6 @@ public class SubscriptionService : IDisposable
         {
             Console.Write($"[Grupo {group.GroupID}] Error de conexión WebSocket: {ex.Message}");
         }
-    }
-
-    public void Dispose()
-    {
-        _semaphore.Dispose();
-        foreach (var group in _activeGroups)
-        {
-            group.CancellationTokenSource?.Cancel();
-            group.WebSocket?.Dispose();
-            group.CancellationTokenSource?.Dispose();
-        }
-        _activeGroups.Clear();
     }
     internal class SubscriptionGroup
     {
