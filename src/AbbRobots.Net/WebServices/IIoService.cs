@@ -12,7 +12,7 @@ public interface IIoService
     /// <param name="cancellationToken">Cancellation Token.</param>
     /// <returns>The current value of the signal as text (e.g. "0", "1", "12.5").</returns>
 
-    Task<string> GtSignalValueAsync(string signalName, CancellationToken cancellationToken = default);
+    Task<string> GetSignalValueAsync(string signalName, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sets or forces the value of an I/O signal in the robot.
