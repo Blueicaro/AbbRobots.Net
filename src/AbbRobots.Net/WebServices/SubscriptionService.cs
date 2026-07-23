@@ -19,14 +19,16 @@ public class SubscriptionService : IDisposable
     private readonly HttpClient _httpClient;
     private readonly string _robotIp;
     private bool _disposed;
+    private bool _isVirtualController;
     private CookieContainer _cookieContainer;
     private List<SubscriptionGroup> _activeGroups = new();
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    public SubscriptionService(HttpClient httpClient, string robotIp, CookieContainer cookieContainer)
+    public SubscriptionService(HttpClient httpClient, string robotIp, CookieContainer cookieContainer, bool isVirtualController)
     {
         _httpClient = httpClient;
         _robotIp = robotIp;
         _cookieContainer = cookieContainer;
+        _isVirtualController = isVirtualController;
     }
 
     public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();

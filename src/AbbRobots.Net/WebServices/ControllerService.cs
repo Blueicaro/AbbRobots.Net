@@ -87,7 +87,7 @@ public class ControllerService : IControllerService
 
         try
         {
-            // 1. Suscripción temporal al canal de progreso de backup si el usuario proveyó callback
+        
             IDisposable? progressSubscription = null;
 
             if (onProgress != null)
@@ -98,7 +98,7 @@ public class ControllerService : IControllerService
                     cancellationToken);
             }
 
-            // 2. Disparo de la solicitud HTTP POST a RWS para iniciar la copia de seguridad
+       
             using var disposableSub = progressSubscription;
             
             var content = new FormUrlEncodedContent([

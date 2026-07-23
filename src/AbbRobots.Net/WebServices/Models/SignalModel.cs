@@ -37,7 +37,7 @@ public class RwsSignalResponse
 {
     [JsonPropertyName("_embedded")]
     public EmbeddedSignals Embedded { get; set; } = new();
-    [JsonPropertyName("_Links")]
+    [JsonPropertyName("_links")]
     public RwsLinks Links { get; set; } = new();
 }
 

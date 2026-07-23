@@ -24,7 +24,7 @@ public class RobotWareService:IRobotWareService
     internal async Task InitializeAsync()
     {
 
-        var responseMessage = await _httpClient.GetRwsAsync("/rw/system/license");
+        var responseMessage = await _httpClient.GetAsync("/rw/system/license");
         responseMessage.EnsureSuccessStatusCode();
         string jsonRaw = await responseMessage.Content.ReadAsStringAsync();
 

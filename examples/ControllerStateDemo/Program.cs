@@ -1,19 +1,19 @@
-﻿
+﻿using AbbRobots.Net;
 
-Console.WriteLine("===========================================");
-Console.WriteLine("  ABB OmniCore/RobotWare SDK - Demo Client ");
-Console.WriteLine("===========================================");
+using var robot = new AbbRobotClient("localhost", "Default User", "robotics",80);
+await robot.ConnectAsync();
 
-// 1. Configurar dirección del robot (RobotStudio local o Robot Real)
-//string robotIp = "127.0.0.1"; // O "192.168.125.1" para conexión física por servicio
-using var cts = new CancellationTokenSource();
-
-// Cancelar operaciones con CTRL+C
-Console.CancelKeyPress += (sender, e) =>
+// 1. Obtener todos los dominios principales (eio, moc, sys, etc.)
+var dominios = await robot.Cfg.GetCfgResourcesAsync();
+foreach (var d in dominios)
 {
-    Console.WriteLine("\nCancelando y cerrando conexión...");
-    e.Cancel = true;
-    cts.Cancel();
-};
+    Console.WriteLine($"Dominio CFG: {d.Name} ({d.Title})");
+}
 
-Console.WriteLine("\nPrograma finalizado correctamente.");
+// 2. Obtener los recursos específicos del dominio EIO
+var recursosEio = await robot.Cfg.GetCfgResourcesAsync("eio");
+foreach (var res in recursosEio)
+{
+    Console.WriteLine($"Recurso EIO: {res.Name}");
+}
+
