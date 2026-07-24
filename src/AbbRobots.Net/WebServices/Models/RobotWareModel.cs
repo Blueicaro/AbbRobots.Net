@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace AbbRobots.Net.Models;
+namespace AbbRobots.Net.WebServices.Models;
 public class LicenseResponseModel
 {
     [JsonPropertyName("state")]

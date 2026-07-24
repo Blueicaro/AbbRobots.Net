@@ -1,4 +1,5 @@
-using AbbRobots.Net.Models;
+using AbbRobots.Net.WebServices.Models;
+
 namespace AbbRobots.Net.WebServices;
 /// <summary>
 /// Provides operations to interact with the Input/Output (I/O) system of the ABB OmniCore/RobotWare robot.

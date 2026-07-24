@@ -1,7 +1,7 @@
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using AbbRobots.Net.Models;
+using AbbRobots.Net.WebServices.Models;
 
 namespace AbbRobots.Net.WebServices;
 

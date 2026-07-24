@@ -1,7 +1,7 @@
 using System.Text;
 using System.Net.WebSockets;
 using System.Net;
-using AbbRobots.Net.Models;
+using AbbRobots.Net.WebServices.Models;
 using System.Xml.Linq;
 
 

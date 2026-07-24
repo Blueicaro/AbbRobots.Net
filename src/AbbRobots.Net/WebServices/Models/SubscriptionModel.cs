@@ -1,4 +1,4 @@
-namespace AbbRobots.Net.Models;
+namespace AbbRobots.Net.WebServices.Models;
 public enum SubscriptionPriority
     {
         low = 0,

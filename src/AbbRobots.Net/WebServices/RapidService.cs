@@ -5,11 +5,11 @@ using AbbRobots.Net.WebServices.Models;
 
 namespace AbbRobots.Net.WebServices;
 
-public class RapidServices : IRapidService
+public class RapidService : IRapidService
 {
     private readonly HttpClient _httpClient;
     private const string baseIoResource = "/rw/rapid";
-    public RapidServices(HttpClient httpClient)
+    public RapidService(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
