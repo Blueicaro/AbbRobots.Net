@@ -9,7 +9,15 @@ namespace AbbRobots.Net;
 public class AbbRobotClient : IAsyncDisposable, IDisposable
 {
     // Private fields that will save services once connected
+    private RobotWareService? _robotWare;
+    private IoService? _io;
+    private MastershipService? _mastership;
+    private SystemService? _system;
+    private ControllerService? _controllerService;
+    private SubscriptionService? _subscriptionService;
+    private RapidService? _rapid;
 
+    private bool _disposed;
 
     public RobotWareService RobotWare => _robotWare
         ?? throw new InvalidOperationException("RobotWare cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
@@ -22,11 +30,8 @@ public class AbbRobotClient : IAsyncDisposable, IDisposable
 
     public ControllerService Controller => _controllerService ?? throw new InvalidOperationException("Controller cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
 
-    /// <summary>
-    /// Servicio para consultar y gestionar la configuración (CFG) de la controladora.
-    /// </summary>
-    public ICfgService Cfg => _cfgService
-        ?? throw new InvalidOperationException("Cfg cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
+    public RapidService Rapid => _rapid ?? throw new InvalidOperationException("Rapid cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
+
     private bool? _isVirtualController;
 
     public bool IsVirtualController => _isVirtualController ?? throw new InvalidOperationException("Cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
@@ -34,16 +39,6 @@ public class AbbRobotClient : IAsyncDisposable, IDisposable
     private readonly HttpClient _httpClient;
     private readonly CookieContainer _cookieContainer;
     private readonly string _robotIp;
-
-    private RobotWareService? _robotWare;
-    private IoService? _io;
-    private MastershipService? _mastership;
-    private SystemService? _system;
-    private ControllerService? _controllerService;
-    private SubscriptionService? _subscriptionService;
-    private CfgService? _cfgService;
-
-    private bool _disposed;
 
     public AbbRobotClient(string ipAddress, string username, string password, int? port = null)
     {
@@ -76,15 +71,13 @@ public class AbbRobotClient : IAsyncDisposable, IDisposable
 
         _isVirtualController = tempRobotWare.IsVirtualController;
         _robotWare = tempRobotWare;
-      
 
-        _subscriptionService = new SubscriptionService(_httpClient, _robotIp, _cookieContainer, IsVirtualController);
+        _subscriptionService = new SubscriptionService(_httpClient, _robotIp, _cookieContainer,IsVirtualController);
         _io = new IoService(_httpClient, _subscriptionService);
         _mastership = new MastershipService(_httpClient);
         _system = new SystemService(_httpClient);
-        _controllerService = new ControllerService(_httpClient, _subscriptionService,IsVirtualController);
-        _cfgService = new CfgService (_httpClient);
-        _robotWare =  new RobotWareService(_httpClient);
+        _controllerService = new ControllerService(_httpClient, _subscriptionService, tempRobotWare.IsVirtualController);
+        _rapid = new RapidService(_httpClient);
     }
 
     public async ValueTask DisposeAsync()
