@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using AbbRobots.Net.WebServices.Models;
@@ -20,10 +21,62 @@ public class RapidServices : IRapidService
         return ParseRapidResourcesResponse(json);
     }
 
-    
-    public Task<IReadOnlyList<TasksResource>> GetRapidTasksAsync(CancellationToken cancellationToken = default)
+
+    public async Task<IReadOnlyList<TasksResource>> GetRapidTasksAsync(CancellationToken cancellationToken = default)
+    {
+        string url = $"{baseIoResource}/tasks";
+        HttpResponseMessage response = await _httpClient.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
+
+        return ParseTaskResourceResponse(json);
+    }
+
+    public Task<bool> ValidateRapidVariable(string taskName, string rapidVariable, string dataType)
     {
         throw new NotImplementedException();
+    }
+
+    private static IReadOnlyList<TasksResource> ParseTaskResourceResponse(JsonNode? jsonNode)
+    {
+        var result = new List<TasksResource>();
+        if (jsonNode == null) return result;
+
+        var embeddedNode = jsonNode["_embedded"];
+        if (embeddedNode == null) return result;
+
+        var jsonArray = embeddedNode["resources"]?.AsArray()
+                    ?? embeddedNode["_state"]?.AsArray();
+
+        if (jsonArray == null) return result;
+
+        foreach (var item in jsonArray)
+        {
+            if (item == null) continue;
+
+            string? href = item["_links"]?["self"]?["href"]?.ToString();
+            string? type = item["type"]?.ToString();
+            string name = item["name"]?.ToString() ?? href ?? string.Empty;
+            string? taskState = item["taskstate"]?.ToString();
+            string? excState = item["excstate"]?.ToString();
+            string? active = item["active"]?.ToString();
+            string? motionTask = item["motiontask"]?.ToString();
+
+            if (!string.IsNullOrEmpty(name))
+            {
+
+                result.Add(new TasksResource(
+                    Name: name,
+                    Type: type,
+                    TaskState: taskState,
+                    Excstate: excState,
+                    Active: active,
+                    MotionTask: motionTask,
+                    Url: href
+                ));
+            }
+        }
+        return result;
     }
 
     private static IReadOnlyList<RapidResource> ParseRapidResourcesResponse(JsonNode? jsonNode)
@@ -31,6 +84,8 @@ public class RapidServices : IRapidService
         var result = new List<RapidResource>();
 
         if (jsonNode == null) return result;
+
+     
 
         var embeddedNode = jsonNode["_embedded"];
         if (embeddedNode == null) return result;
@@ -63,5 +118,6 @@ public class RapidServices : IRapidService
         }
         return result;
     }
+
 
 }

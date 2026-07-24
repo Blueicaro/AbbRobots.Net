@@ -13,5 +13,7 @@ public record TasksResource(
     string? TaskState=null,
     string? Excstate =null,
     string? Active = null,
-    bool? MotionTask = null
+    string? MotionTask = null,
+    string? Url = null
 );
+

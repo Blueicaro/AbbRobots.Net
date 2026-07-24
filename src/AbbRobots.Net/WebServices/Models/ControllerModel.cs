@@ -21,7 +21,11 @@ public class BackupProgressEventArgs : EventArgs
     public string CurrentStep { get; init; } = string.Empty; // ej: "Archiving RAPID modules", "Compressing..."
     public string? ErrorMessage { get; init; }
 }
-
+public class BackupStateResponseModel
+{
+    [JsonPropertyName("state")]
+    public List<BackupStateModel> State { get; set; } = new();
+}
 public class BackupResult
 {
     public required string BackupName { get; init; }

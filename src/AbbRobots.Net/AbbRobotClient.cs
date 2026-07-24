@@ -82,7 +82,7 @@ public class AbbRobotClient : IAsyncDisposable, IDisposable
         _io = new IoService(_httpClient, _subscriptionService);
         _mastership = new MastershipService(_httpClient);
         _system = new SystemService(_httpClient);
-        _controllerService = new ControllerService(_httpClient, _subscriptionService);
+        _controllerService = new ControllerService(_httpClient, _subscriptionService,IsVirtualController);
         _cfgService = new CfgService (_httpClient);
         _robotWare =  new RobotWareService(_httpClient);
     }
