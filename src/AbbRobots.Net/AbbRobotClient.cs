@@ -17,7 +17,11 @@ public class AbbRobotClient : IAsyncDisposable, IDisposable
     private SubscriptionService? _subscriptionService;
     private RapidService? _rapid;
 
+    private FileService? _fileService;
+
     private bool _disposed;
+
+    public FileService FileService => _fileService ?? throw new InvalidOperationException ("Service cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
 
     public RobotWareService RobotWare => _robotWare
         ?? throw new InvalidOperationException("RobotWare cannot be accessed because the connection has not been established. Call ConnectAsync() first.");
@@ -73,11 +77,12 @@ public class AbbRobotClient : IAsyncDisposable, IDisposable
         _robotWare = tempRobotWare;
 
         _subscriptionService = new SubscriptionService(_httpClient, _robotIp, _cookieContainer,IsVirtualController);
-        _io = new IoService(_httpClient, _subscriptionService);
+        _fileService = new FileService (_httpClient);
         _mastership = new MastershipService(_httpClient);
         _system = new SystemService(_httpClient);
+        _io = new IoService(_httpClient, _subscriptionService);        
         _controllerService = new ControllerService(_httpClient, _subscriptionService, tempRobotWare.IsVirtualController);
-        _rapid = new RapidService(_httpClient);
+        _rapid = new RapidService(_httpClient,_fileService);
     }
 
     public async ValueTask DisposeAsync()

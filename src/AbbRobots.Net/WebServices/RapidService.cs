@@ -7,11 +7,27 @@ namespace AbbRobots.Net.WebServices;
 public class RapidService : IRapidService
 {
     private readonly HttpClient _httpClient;
+    private readonly FileService _fileService;
     private const string BaseRapidResource = "/rw/rapid";
 
-    public RapidService(HttpClient httpClient)
+    public RapidService(HttpClient httpClient, FileService fileService)
     {
         _httpClient = httpClient;
+        _fileService = fileService;
+    }
+
+    public async Task<IReadOnlyList<ModuleResource>> GetRapidModules(string taskName, CancellationToken cancellationToken = default)
+    {
+        string url = $"{BaseRapidResource}/{taskName}/modules";
+
+        HttpResponseMessage response = await _httpClient.GetAsync(url, cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
+
+        return ParseModuleResourceResponse(json);
+
     }
 
     public async Task<IReadOnlyList<RapidResource>> GetRapidResourcesAsync(CancellationToken cancellationToken = default)
@@ -31,11 +47,121 @@ public class RapidService : IRapidService
         return ParseTaskResourceResponse(json);
     }
 
-    public Task<bool> ValidateRapidVariable(string taskName, string rapidVariable, string dataType)
+    public async Task<bool> ValidateRapidVariable(string taskName, string rapidVariable, string dataType)
     {
-        throw new NotImplementedException();
+        string url = $"{BaseRapidResource}/symbols/validate";
+
+        var fields = new Dictionary<string, string> {
+            { "task", taskName },
+            {"value",rapidVariable},
+            {"datatype",dataType}
+            };
+
+        HttpResponseMessage response = await _httpClient.PostRwsFormAsync(url, fields);
+
+        return response.IsSuccessStatusCode;
     }
 
+    public async Task<List<string>> GetModuleText(string taskName, string moduleName,CancellationToken cancellationToken=default)
+    {
+        string url =$"{BaseRapidResource}/{taskName}/{moduleName}\text";
+
+        HttpResponseMessage response = await _httpClient.GetAsync(url,cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
+
+        TextModuleResource? textModuleResource = ParseTextModuleResource(json);
+
+        var content = new List<string>();
+
+        if (textModuleResource==null) return content;
+
+        if (!string.IsNullOrEmpty(textModuleResource.FilePath))
+        {
+                 return (List<string>)await _fileService.GetFileContent(textModuleResource.FilePath);
+        }
+
+
+        if (!string.IsNullOrEmpty(textModuleResource.ModuleText))
+        {
+             content.Add(textModuleResource.ModuleText);
+             return content;
+        }
+
+        return content;
+    }
+
+
+    private static TextModuleResource? ParseTextModuleResource(JsonNode? jsonNode)
+    {
+        
+        if (jsonNode == null ) return null;       
+      
+
+        var jsonArray = jsonNode["resources"]?.AsArray() ?? jsonNode["_state"]?.AsArray();
+
+        if (jsonArray==null) return null;
+
+
+        
+        foreach(var item in jsonArray)
+        {
+            if (item == null) continue;
+
+            string? changeCount = item["change-count"]?.ToString();
+            string? filePath = item["file-path"]?.ToString();
+            string? moduleLenght = item["module-length"]?.ToString();
+            string? moduleText = item["module-text"]?.ToString(); 
+            string? title = item["_title"]?.ToString();
+
+            if (!string.IsNullOrEmpty(title))
+            {
+             return new TextModuleResource(
+                Title : title,
+                ChangeCount : changeCount,
+                ModuleText:moduleText,
+                ModuleLength:moduleLenght,
+                FilePath: filePath
+             );                
+            } 
+        }
+      return null;  
+    }
+
+
+
+    private static IReadOnlyList<ModuleResource> ParseModuleResourceResponse(JsonNode? jsonNode)
+    {
+
+        var result = new List<ModuleResource>();
+        if (jsonNode == null) return result;
+
+        var jsonArray = jsonNode["resources"]?.AsArray()
+                     ?? jsonNode["_state"]?.AsArray();
+
+        if (jsonArray == null) return result;
+
+        foreach (var item in jsonArray)
+        {
+            if (item == null) continue;
+
+            string? title = item["_title"]?.ToString();
+            string? name = item["name"]?.ToString();
+            string? type = item["type"]?.ToString();
+            if (!string.IsNullOrEmpty(name))
+            {
+                result.Add(new ModuleResource(
+                    Name: name,
+                    Title: title,
+                    Type: type
+                ));
+            }
+
+        }
+        return result.AsReadOnly();
+    }
     private static IReadOnlyList<TasksResource> ParseTaskResourceResponse(JsonNode? jsonNode)
     {
         var result = new List<TasksResource>();
@@ -91,4 +217,6 @@ public class RapidService : IRapidService
 
         return result;
     }
+
+
 }
