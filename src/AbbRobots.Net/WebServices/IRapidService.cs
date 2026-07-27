@@ -4,7 +4,7 @@ namespace AbbRobots.Net.WebServices;
 public interface IRapidService
 {
 
-    Task<IReadOnlyList<ModuleResource>> GetRapidModules(string taskName, CancellationToken cancellationToken = default);
+    Task<ModulesResourceModel> GetRapidModules(string taskName, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Description : Returns a list of rapid resource.

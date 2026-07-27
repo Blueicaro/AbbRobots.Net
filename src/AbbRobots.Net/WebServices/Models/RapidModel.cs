@@ -1,3 +1,7 @@
+using System.Dynamic;
+using System.Runtime.Versioning;
+using System.Text.Json.Serialization;
+
 namespace AbbRobots.Net.WebServices.Models;
 
 public record RapidResource(
@@ -10,45 +14,123 @@ public record RapidResource(
 public record TasksResource(
     string Name,
     string? Type = null,
+    string? Title = null,
     string? TaskState = null,
     string? Excstate = null,
     string? Active = null,
     string? MotionTask = null,
     string? Url = null
 );
-/// <summary>
-/// Represents a module
-///  {
-///            "_type": "rap-module-info-li",
-///            "_title": "T_ROB1/Calib_t_pinzaC",
-///            "name": "Calib_t_pinzaC",
-///           "type": "ProgMod"
-/// },
-/// </summary>
-/// <param name="name">Name of module</param>
-/// <param name="title">Path to the module</param>
-/// <param name="type">Type of module. ProgMod, SysMod</param>
+
+
+
 public record ModuleResource(
-    string Name,
     string? Title = null,
-    string? Type = null
-);
-/// <summary>
-/// Represent the answer of a GetModule
-///  "_type": "rap-module-text",
-///            "_title": "moduletext",
-///            "change-count": " 20769 ",
-///            "file-path": "/TEMP/pusres.307523",
-///            "module-length": "1368"
-/// </summary>
-/// <param name="ChangeCount"></param>
-/// <param name="ModuleText">Contents the module, if the module is small</param>
-/// <param name="ModuleLength"></param>
-/// <param name="FilePath">If the file is too long, here is where is stored</param>
-public record TextModuleResource(
-    string? Title=null,
     string? ChangeCount = null,
     string? ModuleText = null,
     string? ModuleLength = null,
     string? FilePath = null
 );
+
+public record ModulesResource(
+    string Name,
+    string? Title = null,
+    string? Type=null
+);
+
+
+// --- Modelos internos de deserialización ---
+
+
+internal record ModulesResponseModel
+{
+    [JsonPropertyName("_embedded")]
+    public ModulesEmbeddedModel? Embedded { get; init; }
+}
+
+internal record ModulesEmbeddedModel
+{
+
+    [JsonPropertyName("resources")]
+    public List<ModulesResourceModel>? Resources { get; init; }
+    public List<ModulesResourceModel> Items => Resources ?? [];
+}
+
+internal record ModulesResourceModel
+{
+    [JsonPropertyName("_links")]
+    public LinksModel? Links { get; init; }
+
+    [JsonPropertyName("_type")]
+    public string? ResourceType { get; init; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
+
+    [JsonPropertyName("type")]
+    public string? Type { get; init; }
+
+     public string ResolvedName => Name ?? Links?.Self?.Href ?? string.Empty;
+}
+
+}
+
+
+
+internal record TasksResponseModel
+{
+    [JsonPropertyName("_embedded")]
+    public TasksEmbeddedModel? Embedded { get; init; }
+}
+
+internal record TasksEmbeddedModel
+{
+    [JsonPropertyName("resources")]
+    public List<TaskResourceModel>? Resources { get; init; }
+
+    public List<TaskResourceModel> Items => Resources ?? [];
+}
+
+internal record TaskResourceModel
+{
+    [JsonPropertyName("_links")]
+    public LinksModel? Links { get; init; }
+
+    [JsonPropertyName("_type")]
+    public string? ResourceType { get; init; }
+
+    [JsonPropertyName("_title")]
+    public string? Title { get; init; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
+
+    [JsonPropertyName("type")]
+    public string? Type { get; init; }
+
+    [JsonPropertyName("taskstate")]
+    public string? TaskState { get; init; }
+
+    [JsonPropertyName("excstate")]
+    public string? ExcState { get; init; }
+
+    [JsonPropertyName("active")]
+    public string? Active { get; init; }
+
+    [JsonPropertyName("motiontask")]
+    public string? MotionTask { get; init; }
+
+    public string ResolvedName => Name ?? Title ?? Links?.Self?.Href ?? string.Empty;
+}
+
+internal record LinksModel
+{
+    [JsonPropertyName("self")]
+    public LinkModel? Self { get; init; }
+}
+
+internal record LinkModel
+{
+    [JsonPropertyName("href")]
+    public string? Href { get; init; }
+}
