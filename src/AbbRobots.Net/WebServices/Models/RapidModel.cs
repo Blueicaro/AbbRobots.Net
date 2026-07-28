@@ -1,5 +1,6 @@
 using System.Dynamic;
 using System.Runtime.Versioning;
+using System.Security.Authentication.ExtendedProtection;
 using System.Text.Json.Serialization;
 
 namespace AbbRobots.Net.WebServices.Models;
@@ -43,8 +44,8 @@ public record ModulesResource(
 internal record ModulesResponseModel
 {
     [JsonPropertyName("state")]
-    public  List <ModuleItemModel>?State {get;init;}
-    public List<ModuleItemModel> Items=>State??[];
+    public List<ModulesItemModel>? State { get; init; }
+    public List<ModulesItemModel> Items => State ?? [];
 }
 
 //   "_type": "rap-module-info-li",
@@ -52,20 +53,47 @@ internal record ModulesResponseModel
 //             "name": "Sistema",
 //             "type": "SysMod"
 
-internal record ModuleItemModel
+internal record ModulesItemModel
 {
     [JsonPropertyName("name")]
-    public string? Name {get; set;}
+    public string? Name { get; set; }
     [JsonPropertyName("Type")]
-    public string? Type{get; set;}
+    public string? Type { get; set; }
     [JsonPropertyName("_title")]
-    public string? Title{get;set;}
+    public string? Title { get; set; }
 
-    public string ResolvedName => Name?? Title?? string.Empty;
+    public string ResolvedName => Name ?? Title ?? string.Empty;
+}
+#endregion
+
+#region ModuleResponseModel
+
+internal record ModuleResponseModel
+{
+    [JsonPropertyName("state")]
+    public List<ModuleItemsModel>? State { get; init; }
+    public ModuleItemsModel? Content => State?.FirstOrDefault();
+}
+
+internal record ModuleItemsModel
+{
+    [JsonPropertyName("_type")]
+    public string? Type { get; init; }
+    [JsonPropertyName("_title")]
+    public string? Title { get; init; }
+    [JsonPropertyName("change-count")]
+    public string? ChangeCount { get; init; }
+    [JsonPropertyName("file-path")]
+    public string? FilePath { get; init; }
+    [JsonPropertyName("module-text")]
+    public string? ModuleText { get; init; }
+
 }
 
 
+
 #endregion
+
 
 #region  TaskResponseModel
 internal record TasksResponseModel

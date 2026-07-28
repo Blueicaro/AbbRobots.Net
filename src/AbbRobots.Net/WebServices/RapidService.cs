@@ -79,7 +79,7 @@ public class RapidService : IRapidService
     public async Task<IReadOnlyList<string>> GetModuleTextAsync(string taskName, string moduleName, CancellationToken cancellationToken = default)
     {
         // https://localhost:80/rw/rapid/tasks/T_ROB1/modules/MainModule/text
-        string url =$"{BaseRapidResource}/tasks/{taskName}/modules/{moduleName}";
+        string url =$"{BaseRapidResource}/tasks/{taskName}/modules/{moduleName}/text";
 
         HttpResponseMessage response = await _httpClient.GetAsync(url,cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -98,17 +98,12 @@ public class RapidService : IRapidService
         {
             response = await _httpClient.GetAsync(responseModel.FilePath,cancellationToken);
             response.EnsureSuccessStatusCode();
-            rawString = await response.Content.ReadAsStringAsync();
+            rawString = await response.Content.ReadAsStringAsync(cancellationToken);
         }else
         {
             return[];
         }
 
         return rawString.Split(["\r\n","\n"], StringSplitOptions.None);
-
-
-
-
-
     }
 }
