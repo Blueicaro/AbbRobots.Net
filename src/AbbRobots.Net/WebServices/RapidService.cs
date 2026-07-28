@@ -7,54 +7,14 @@ namespace AbbRobots.Net.WebServices;
 public class RapidService : IRapidService
 {
     private readonly HttpClient _httpClient;
-    private readonly FileService _fileService;
+
     private const string BaseRapidResource = "/rw/rapid";
 
-    public RapidService(HttpClient httpClient, FileService fileService)
+    public RapidService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _fileService = fileService;
+      
     }
-    public async Task<ModulesResource> GetRapidModules(string taskName, CancellationToken cancellationToken = default)
-    {
-        string url = $"{BaseRapidResource}/{taskName}/modules";
-
-        HttpResponseMessage response = await _httpClient.GetAsync(url, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var responseModel = await response.Content.ReadFromJsonAsync<ModulesResponseModel>(cancellationToken:cancellationToken);
-        
-        
-        return responseModel?.Embebbed?.Items
-        .Where(i => !string.IsNullOrEmpty(i.ResolvedName))
-        .Select(i => new ModulesResource(
-            Name: i.Name          
-        ))
-        .ToList().AsReadOnly() ??[]
-
-        throw new NotImplementedException();
-    }
-
-    // public async Task<ModulesResourcel> GetRapidModules(string taskName, CancellationToken cancellationToken = default)
-    // {
-    //     string url = $"{BaseRapidResource}/{taskName}/modules";
-
-    //     HttpResponseMessage response = await _httpClient.GetAsync(url, cancellationToken);
-
-    //     response.EnsureSuccessStatusCode();
-
-    //     var responseModel = await response.Content.ReadFromJsonAsync<ModulesResponseModel>(cancellationToken:cancellationToken);
-
-    //     return responseModel?.Embebbed?.Items
-    //     .Where (I => !string.IsNullOrEmpty(I.ResolvedName))
-    //     .Select(i=> new ModuleResource(
-    //         Name
-    //     ))
-
-
-    // }
-
-
     public async Task<IReadOnlyList<TasksResource>> GetRapidTasksAsync(CancellationToken cancellationToken = default)
     {
         string url = $"{BaseRapidResource}/tasks";
@@ -78,15 +38,7 @@ public class RapidService : IRapidService
 
     }
 
-    // public async Task<IReadOnlyList<RapidResource>> GetRapidResourcesAsync(CancellationToken cancellationToken = default)
-    // {
-    //     HttpResponseMessage response = await _httpClient.GetAsync(BaseRapidResource, cancellationToken);
-    //     response.EnsureSuccessStatusCode();
-    //     var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-    //     return ParseRapidResourcesResponse(json);
-    // }
-
-    public async Task<bool> ValidateRapidVariable(string taskName, string rapidVariable, string dataType)
+    public async Task<bool> ValidateRapidVariableAsync(string taskName, string rapidVariable, string dataType)
     {
         string url = $"{BaseRapidResource}/symbols/validate";
 
@@ -102,19 +54,61 @@ public class RapidService : IRapidService
     }
 
 
-
-    public Task<IReadOnlyList<RapidResource>> GetRapidResourcesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ModulesResource>> GetRapidModulesAsync(string taskName, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+         //https://localhost:80/rw/rapid/tasks/T_ROB1/modules
+        string url = $"{BaseRapidResource}/tasks/{taskName}/modules";
+
+        HttpResponseMessage response = await _httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var responseModel = await response.Content.ReadFromJsonAsync<ModulesResponseModel>(cancellationToken:cancellationToken);
+
+        var items = responseModel?.Items ??[];
+
+        return items
+        .Where (i=> !string.IsNullOrEmpty(i.ResolvedName))
+        .Select(i => new ModulesResource(
+           Name:i.ResolvedName,
+           Type: i.Type,
+           Title: i.Title
+        )).ToList().AsReadOnly()??[];
+
     }
 
-    public Task<IReadOnlyList<TasksResource>> GetRapidTasksAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<string>> GetModuleTextAsync(string taskName, string moduleName, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
-    }
+        // https://localhost:80/rw/rapid/tasks/T_ROB1/modules/MainModule/text
+        string url =$"{BaseRapidResource}/tasks/{taskName}/modules/{moduleName}";
 
-    public Task<List<string>> GetModuleText(string taskName, string moduleName, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
+        HttpResponseMessage response = await _httpClient.GetAsync(url,cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var responseModel = await response.Content.ReadFromJsonAsync<ModuleResource>(cancellationToken:cancellationToken);
+
+        
+
+        string rawString= string.Empty;
+  
+
+        if (!string.IsNullOrEmpty(responseModel?.ModuleText))
+        {
+            rawString = responseModel.ModuleText;
+        }else if (!string.IsNullOrEmpty(responseModel?.FilePath))
+        {
+            response = await _httpClient.GetAsync(responseModel.FilePath,cancellationToken);
+            response.EnsureSuccessStatusCode();
+            rawString = await response.Content.ReadAsStringAsync();
+        }else
+        {
+            return[];
+        }
+
+        return rawString.Split(["\r\n","\n"], StringSplitOptions.None);
+
+
+
+
+
     }
 }

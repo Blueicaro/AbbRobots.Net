@@ -34,49 +34,40 @@ public record ModuleResource(
 
 public record ModulesResource(
     string Name,
-    string? Title = null,
-    string? Type=null
+    string? Type,
+    string? Title
 );
 
-
 // --- Modelos internos de deserialización ---
-
-
+#region ModulesResponseModel
 internal record ModulesResponseModel
 {
-    [JsonPropertyName("_embedded")]
-    public ModulesEmbeddedModel? Embedded { get; init; }
+    [JsonPropertyName("state")]
+    public  List <ModuleItemModel>?State {get;init;}
+    public List<ModuleItemModel> Items=>State??[];
 }
 
-internal record ModulesEmbeddedModel
+//   "_type": "rap-module-info-li",
+//             "_title": "T_ROB1/Sistema",
+//             "name": "Sistema",
+//             "type": "SysMod"
+
+internal record ModuleItemModel
 {
-
-    [JsonPropertyName("resources")]
-    public List<ModulesResourceModel>? Resources { get; init; }
-    public List<ModulesResourceModel> Items => Resources ?? [];
-}
-
-internal record ModulesResourceModel
-{
-    [JsonPropertyName("_links")]
-    public LinksModel? Links { get; init; }
-
-    [JsonPropertyName("_type")]
-    public string? ResourceType { get; init; }
-
     [JsonPropertyName("name")]
-    public string? Name { get; init; }
+    public string? Name {get; set;}
+    [JsonPropertyName("Type")]
+    public string? Type{get; set;}
+    [JsonPropertyName("_title")]
+    public string? Title{get;set;}
 
-    [JsonPropertyName("type")]
-    public string? Type { get; init; }
-
-     public string ResolvedName => Name ?? Links?.Self?.Href ?? string.Empty;
+    public string ResolvedName => Name?? Title?? string.Empty;
 }
 
-}
 
+#endregion
 
-
+#region  TaskResponseModel
 internal record TasksResponseModel
 {
     [JsonPropertyName("_embedded")]
@@ -94,7 +85,7 @@ internal record TasksEmbeddedModel
 internal record TaskResourceModel
 {
     [JsonPropertyName("_links")]
-    public LinksModel? Links { get; init; }
+    public TaskLinksModel? Links { get; init; }
 
     [JsonPropertyName("_type")]
     public string? ResourceType { get; init; }
@@ -123,7 +114,7 @@ internal record TaskResourceModel
     public string ResolvedName => Name ?? Title ?? Links?.Self?.Href ?? string.Empty;
 }
 
-internal record LinksModel
+internal record TaskLinksModel
 {
     [JsonPropertyName("self")]
     public LinkModel? Self { get; init; }
@@ -134,3 +125,4 @@ internal record LinkModel
     [JsonPropertyName("href")]
     public string? Href { get; init; }
 }
+#endregion

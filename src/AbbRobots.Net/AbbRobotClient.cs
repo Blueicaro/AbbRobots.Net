@@ -82,7 +82,7 @@ public class AbbRobotClient : IAsyncDisposable, IDisposable
         _system = new SystemService(_httpClient);
         _io = new IoService(_httpClient, _subscriptionService);        
         _controllerService = new ControllerService(_httpClient, _subscriptionService, tempRobotWare.IsVirtualController);
-        _rapid = new RapidService(_httpClient,_fileService);
+        _rapid = new RapidService(_httpClient);
     }
 
     public async ValueTask DisposeAsync()
